@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
+import bezier.curve as bcurve
+from scipy.optimize import root_scalar
 '''
 +---------------------------+
 | Created by Jade Nassif    |
@@ -44,7 +46,7 @@ class waverider():
     # constructor
     # expected input for dp (design parameters) is a list [X1,X2,X3,X4]
     # STATUS OF FUNCTION : STABLE
-    def __init__(self,M_inf,beta,height,width,dp,n_upper_surface,**kwargs):
+    def __init__(self,M_inf,beta,height,width,dp,n_upper_surface,n_shockwave,**kwargs):
 
         #initialise class attributes below
         self.M_inf=M_inf
@@ -118,8 +120,106 @@ class waverider():
         self.us_P3=self.us_cp[3,:]
 
         # create an interpolation object for upper surface
+        # self.Interpolate_Upper_Surface
         self.Create_Interpolated_Upper_Surface(n=n_upper_surface)
 
+        # next step is to calculate intersections with upper surface
+        # start by defining the sample of points for the shockwave in local coordinates z and y
+        self.z_local_shockwave=np.linspace(0,self.width,self.n_planes+2)
+        self.z_local_shockwave=self.z_local_shockwave[1:-1]
+        
+        #calculate the corresponding y_bar coordinates by first creating a interp1d object for the 
+        # non-flat part of the curve
+        self.Create_Interpolated_Shockwave(n=n_shockwave)
+
+        #obtain the y_bar values for the z sample in self.y_bar_shockwave
+        self.Get_Shockwave_Curve()
+
+        #obtain the first derivatives, 
+        # create a bezier object and use an inverse method to solve for the corresponding t in the curved region
+
+        self.bezier_shockwave=bcurve.Curve.from_nodes(np.asfortranarray(self.s_cp.T))
+        self.curved_osculating_planes=self.z_local_shockwave[self.z_local_shockwave[:]>self.width*self.X1]
+        self.t_values=[]
+        self.first_derivatives=[]
+        self.dzdt=[]
+        self.dydt=[]
+
+        self.Find_Intersections_With_Upper_Surface()
+
+    def Find_Intersections_With_Upper_Surface(self):
+
+        self.local_intersections_us=np.zeros((self.n_planes,2))
+
+        for i,z in enumerate(self.z_local_shockwave):
+
+            if z<=self.X1*self.width or self.X2==0:
+                self.local_intersections_us[i,0]=z
+                self.local_intersections_us[i,1]=self.Interpolate_Upper_Surface(z)
+            else:
+                first_derivative=self.Get_First_Derivative(i)
+
+                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=z,y_s=self.y_bar_shockwave[i,:])
+                self.local_intersections_us[i,:]=intersection
+
+    def Intersection_With_Upper_Surface(self,first_derivative,z_s,y_s):
+
+        # get the constant c and slope for the line between the two points
+        c=y_s+(1/first_derivative)*z_s
+        m= -1/first_derivative
+
+        # define the function used to find the intersection between the two curves
+        def f(z):
+            return self.Equation_of_Line(z,m,c) - self.Interpolate_Upper_Surface(z)
+        
+        # use a computational method to get the root
+        intersection = root_scalar(f, bracket=[0, self.width])
+
+        # extract local coordinates of the root
+        z=intersection.root
+        y=self.Equation_of_Line(z,m,c)
+        return np.array([z,y])
+
+    def Get_First_Derivative(self,i):
+        z=self.z_local_shockwave[i]
+        y=self.y_bar_shockwave[i,:]
+        
+        t=self.bezier_shockwave.locate(np.asfortranarray([
+            [float(z)],
+            [float(y)],
+            ]))
+        print(z,y,t)
+        self.t_values.append(t)
+
+        first_derivative,dzdt,dydt=self.First_Derivative(t)
+
+        self.first_derivatives.append(first_derivative)
+        self.dzdt.append(dzdt)
+        self.dydt.append(dydt)
+
+        return first_derivative
+
+
+    def Get_Shockwave_Curve(self):
+
+        self.y_bar_shockwave=np.zeros((self.n_planes,1))
+
+        for i,z in enumerate(self.z_local_shockwave):
+            if z<=self.width*self.X1:
+                self.y_bar_shockwave[i,0]=0
+            else:
+                self.y_bar_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
+
+    def Create_Interpolated_Shockwave(self,n):
+        
+        t_values=np.linspace(0,1,n)
+        points=np.zeros((n,2))
+
+        for i,t in enumerate(t_values):
+            points[i,:]=self.Bezier_Shockwave(t)
+
+        
+        self.Interpolate_Shockwave=interp1d(points[:,0],points[:,1],kind='linear')
 
 
     def Create_Interpolated_Upper_Surface(self,n):
@@ -136,6 +236,10 @@ class waverider():
         # store interp1d objected as an attribute
         self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
 
+    # def Calculate_First_Derivatives(self):
+
+        # calculate slope for all 
+
 
 
 
@@ -151,19 +255,25 @@ class waverider():
 
         return point
     
-    # returns slope, 
+    # returns slope m, dz/dt and dy/dt
     def First_Derivative(self, t):
 
         first_derivative = 4 * (1-t)**3 * (self.s_P1 - self.s_P0) + 12 * (1-t)**2 * t * (self.s_P2 - self.s_P1) + 12 * (1-t) * t**2 * (self.s_P3 - self.s_P2) + 4 * t**3 * (self.s_P4 - self.s_P3)
     
-        return first_derivative
+        return first_derivative[1]/first_derivative[0],first_derivative[0],first_derivative[1]
+    
+    # returns components of second derivative, z and y respectively
+    def Second_derivative(self, t):
 
+        second_derivative = 12 * (1-t)**2 * (self.s_P2 - 2 * self.s_P1 + self.s_P0) + 24 * (1-t) * t * (self.s_P3 - 2 * self.s_P2 + self.s_P1) + 12 * t**2 * (self.s_P4 - 2 * self.s_P3 + self.s_P2)
+        return second_derivative[0],second_derivative[1]
+    
     def Bezier_Upper_Surface(self, t):
 
         point = (1 - t)**3 * self.us_P0 + 3 * (1 - t)**2 * t * self.us_P1 + 3 * (1 - t) * t**2 * self.us_P2 + t**3 * self.us_P3
 
         return point
-    
+
     def Local_to_Global(self,y):
     # convert local coordinates to global coordinates
         y=y-self.height
