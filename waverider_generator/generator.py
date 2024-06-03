@@ -159,6 +159,7 @@ class waverider():
         self.upper_surface_x[0,:]=np.linspace(0,self.length,self.n_streamwise)
         self.upper_surface_y[0,:]=0
         self.upper_surface_z[0,:]=0
+        print("lol")
 
         # compute the upper surface in self.leading edge
         self.Compute_Upper_Surface()
