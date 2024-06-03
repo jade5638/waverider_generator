@@ -2,6 +2,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 import bezier.curve as bcurve
 from scipy.optimize import root_scalar
+from  scipy.integrate import solve_ivp
+from scipy.interpolate import UnivariateSpline
 '''
 +---------------------------+
 | Created by Jade Nassif    |
@@ -53,6 +55,12 @@ class waverider():
         self.beta=beta
         self.height=height
         self.width=width
+        
+        #ratio of specific heats
+        self.gamma=1.4
+
+        #computes self.theta
+        self.Compute_Deflection_Angle()
 
         self.X1=dp[0]
         self.X2=dp[1]
@@ -159,15 +167,32 @@ class waverider():
         self.upper_surface_x[0,:]=np.linspace(0,self.length,self.n_streamwise)
         self.upper_surface_y[0,:]=0
         self.upper_surface_z[0,:]=0
-        print("lol")
+
+        #create an alternative way of storing the upper surface streams
+        
 
         # compute the upper surface in self.leading edge
         self.Compute_Upper_Surface()
 
-        # next step is to trace the streamlines
-
+        # next step is to trace the streamlines, start by computing the flow deflection in flat regions
+        # self.theta
+        self.Compute_Deflection_Angle()
+        self.streams=[]
         
-    
+        self.Streamline_Tracing()
+        
+    def Streamline_Tracing(self):
+
+        for i,le_point in enumerate(self.leading_edge):
+            if le_point[0]<=self.X1*self.width or self.X2==0:
+                bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
+                x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
+                y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
+                z=np.full((y.shape),le_point[2])
+
+                self.streams.append(np.column_stack([x,y,z]))
+
+
     def Compute_Upper_Surface(self):
         
         for i in range(0,self.n_planes):
@@ -328,6 +353,12 @@ class waverider():
 
         # store interp1d objected as an attribute
         self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
+    
+    def Compute_Deflection_Angle(self):
+
+        tanTheta=2*cot(self.beta*np.pi/180)*(self.M_inf**2*np.sin(self.beta*np.pi/180)**2-1)/(self.M_inf**2*(self.gamma+np.cos(2*self.beta*np.pi/180))+2)
+
+        self.theta=np.arctan(tanTheta)*180/np.pi
 
     # def Calculate_First_Derivatives(self):
 
@@ -342,6 +373,7 @@ class waverider():
     """
     AUXILIARY FUNCTIONS    
     """    
+
     def Bezier_Shockwave(self,t):
 
         point=(1-t)**4*self.s_P0+4*(1-t)**3*t*self.s_P1+6*(1-t)**2*t**2*self.s_P2+4*(1-t)*t**3*self.s_P3+t**4*self.s_P4
@@ -380,3 +412,23 @@ def Euclidean_Distance(x1,y1,x2,y2):
 
 def Equation_of_Line(z,m,c):
     return m*z+c
+
+
+def cot(angle):
+    return 1/np.tan(angle)
+
+def cone_field(Mach, theta, beta, gamma):
+    d = np.arctan(2.0 / np.tan(beta) * (pow(Mach, 2) * pow(np.sin(beta),
+                                                           2) - 1.0) / (pow(Mach, 2) * (gamma + np.cos(2 * beta)) + 2.0))
+    Ma2 = 1.0 / np.sin(beta - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * pow(Mach, 2) * pow(
+        np.sin(beta), 2)) / (gamma * pow(Mach, 2) * pow(np.sin(beta), 2) - (gamma - 1.0) / 2.0))
+    V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * pow(Ma2, 2)) + 1.0)
+    Vr = V * np.cos(beta - d)
+    Vt = -(V * np.sin(beta - d))
+
+    xt = np.array([Vr, Vt])
+    
+    sol = solve_ivp(TM, (beta, theta), xt, args=(gamma,))
+    Vrf = UnivariateSpline(sol.t[::-1], sol.y[0, ::-1], k=min(3, sol.t.size-1))
+    Vtf = UnivariateSpline(sol.t[::-1], sol.y[1, ::-1], k=min(3, sol.t.size-1))
+    return [Vrf, Vtf]

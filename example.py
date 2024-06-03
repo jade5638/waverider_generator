@@ -11,7 +11,7 @@ M_inf=5
 beta=15
 height=1.34
 width=3
-dp=[0.04,0.26,0.97,0.95]
+dp=[0.33,0,0.06,0.37]
 
 waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=20,n_streamwise=11)
 
@@ -26,6 +26,10 @@ for point1, point2 in zip(inters, lowers):
     plt.plot(x_values, z_values, 'bo-')
 shockwave=np.vstack([np.array([0,0]),lowers,waverider.s_P4])
 upper_surface=np.vstack([np.array([0,waverider.height]),inters,waverider.us_P3])
+ls=waverider.streams
+z_ls = np.array([line[:, 2] for line in ls])[:,-1]
+y_ls = np.array([line[:, 1] for line in ls])[:,-1]+height
+plt.plot(z_ls,y_ls,'--k')
 plt.plot(upper_surface[:,0],upper_surface[:,1],'r-')
 plt.plot(shockwave[:, 0], shockwave[:, 1],'b-')
 X2=waverider.us_P3
@@ -57,27 +61,16 @@ ax = fig.add_subplot(111, projection='3d')
 
 # for i in range(21):
 #     ax.plot(upper_surface_x[i,:], upper_surface_y[i,:], upper_surface_z[i,:])
-ax.plot_surface(x,y,z)
+ax.plot_surface(x,y,z,color='blue')
 ax.set_xlabel('X Label')
 ax.set_ylabel('Y Label')
 ax.set_zlabel('Z Label')
 plt.gca().set_aspect('equal')
+
+
+streams=waverider.streams
+x_ls= np.array([line[:, 0] for line in streams])
+y_ls = np.array([line[:, 1] for line in streams])
+z_ls = np.array([line[:, 2] for line in streams])
+ax.plot_surface(x_ls, y_ls, z_ls,color='blue')
 plt.show()
-# points = []
-# for i in range(x.shape[0]):
-#     for j in range(x.shape[1]):
-#         points.append((x[i, j], y[i, j], z[i, j]))
-
-# cross_sections = []
-# for i in range(x.shape[0]):
-#     points = [(x[i, j], y[i, j], z[i, j]) for j in range(x.shape[1])]
-#     wire = cq.Workplane("XY").polyline(points).close()
-#     cross_sections.append(wire)
-
-# # Create a lofted surface from the cross-sections
-# lofted_solid = cq.Workplane("XY").add(cross_sections).loft()
-
-# # Export the lofted surface as a STEP file
-# exporters.export(lofted_solid, 'surface.step')
-
-# print("Surface exported as surface.step")
