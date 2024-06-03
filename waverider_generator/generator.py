@@ -417,18 +417,18 @@ def Equation_of_Line(z,m,c):
 def cot(angle):
     return 1/np.tan(angle)
 
-def cone_field(Mach, theta, beta, gamma):
-    d = np.arctan(2.0 / np.tan(beta) * (pow(Mach, 2) * pow(np.sin(beta),
-                                                           2) - 1.0) / (pow(Mach, 2) * (gamma + np.cos(2 * beta)) + 2.0))
-    Ma2 = 1.0 / np.sin(beta - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * pow(Mach, 2) * pow(
-        np.sin(beta), 2)) / (gamma * pow(Mach, 2) * pow(np.sin(beta), 2) - (gamma - 1.0) / 2.0))
-    V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * pow(Ma2, 2)) + 1.0)
-    Vr = V * np.cos(beta - d)
-    Vt = -(V * np.sin(beta - d))
+# def cone_field(Mach, theta, beta, gamma):
+#     d = np.arctan(2.0 / np.tan(beta) * (pow(Mach, 2) * pow(np.sin(beta),
+#                                                            2) - 1.0) / (pow(Mach, 2) * (gamma + np.cos(2 * beta)) + 2.0))
+#     Ma2 = 1.0 / np.sin(beta - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * pow(Mach, 2) * pow(
+#         np.sin(beta), 2)) / (gamma * pow(Mach, 2) * pow(np.sin(beta), 2) - (gamma - 1.0) / 2.0))
+#     V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * pow(Ma2, 2)) + 1.0)
+#     Vr = V * np.cos(beta - d)
+#     Vt = -(V * np.sin(beta - d))
 
-    xt = np.array([Vr, Vt])
+#     xt = np.array([Vr, Vt])
     
-    sol = solve_ivp(TM, (beta, theta), xt, args=(gamma,))
-    Vrf = UnivariateSpline(sol.t[::-1], sol.y[0, ::-1], k=min(3, sol.t.size-1))
-    Vtf = UnivariateSpline(sol.t[::-1], sol.y[1, ::-1], k=min(3, sol.t.size-1))
-    return [Vrf, Vtf]
+#     sol = solve_ivp(TM, (beta, theta), xt, args=(gamma,))
+#     Vrf = UnivariateSpline(sol.t[::-1], sol.y[0, ::-1], k=min(3, sol.t.size-1))
+#     Vtf = UnivariateSpline(sol.t[::-1], sol.y[1, ::-1], k=min(3, sol.t.size-1))
+#     return [Vrf, Vtf]
