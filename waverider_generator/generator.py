@@ -150,6 +150,26 @@ class waverider():
         self.cone_centers=np.zeros((self.n_planes,3))
         # osculate through the planes
         self.Compute_Leading_Edge_And_Cone_Centers()
+
+        # next step is to compute the upper surface
+        self.upper_surface_x=np.zeros((self.n_planes+1,self.n_streamwise))
+        self.upper_surface_y=np.zeros((self.n_planes+1,self.n_streamwise))
+        self.upper_surface_z=np.zeros((self.n_planes+1,self.n_streamwise))
+        # add the symmetry plane
+        self.upper_surface_x[0,:]=np.linspace(0,self.length,self.n_streamwise)
+        self.upper_surface_y[0,:]=0
+        self.upper_surface_z[0,:]=0
+
+        # compute the upper surface
+        self.Compute_Upper_Surface()
+        
+    
+    def Compute_Upper_Surface(self):
+        
+        for i in range(0,self.n_planes):
+            self.upper_surface_x[i+1,:]=np.linspace(self.leading_edge[i,0],self.length,self.n_streamwise)
+            self.upper_surface_y[i+1,:]=np.linspace(self.leading_edge[i,1],self.Local_to_Global(self.local_intersections_us[i,1]),self.n_streamwise)
+            self.upper_surface_z[i+1,:]=np.linspace(self.leading_edge[i,2],self.local_intersections_us[i,0],self.n_streamwise)
         
     def Compute_Leading_Edge_And_Cone_Centers(self):
 
@@ -168,7 +188,8 @@ class waverider():
                 # first derivative and radius
                 first_derivative,_,_=self.First_Derivative(t)
                 radius=self.Calculate_Radius_Curvature(t)
-                
+
+                self.leading_edge[i+1,:]=self.cone_centers[i,:]
                 # get angle theta
                 theta=np.arctan(first_derivative)
                 
@@ -183,12 +204,14 @@ class waverider():
 
                 # get the location of the intersection
                 self.leading_edge[i+1,:]=self.Intersection_With_Freestream_Plane(self.cone_centers[i,0],
-                                                                                 self.cone_centers[i,1],
-                                                                                 self.cone_centers[i,2],
-                                                                                 self.length,
-                                                                                 self.Local_to_Global(self.y_bar_shockwave[i,0]),
-                                                                                 z,
-                                                                                 self.Local_to_Global(self.local_intersections_us[i,1]))
+                                                                                self.cone_centers[i,1],
+                                                                                self.cone_centers[i,2],
+                                                                                self.length,
+                                                                                self.Local_to_Global(self.y_bar_shockwave[i,0]),
+                                                                                z,
+                                                                                self.Local_to_Global(self.local_intersections_us[i,1]))
+                
+
 
     def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
 
@@ -212,7 +235,7 @@ class waverider():
         _,dzdt,dydt=self.First_Derivative(float(t))
         dzdt2,dydt2=self.Second_derivative(float(t))
 
-        radius= 1/((dzdt*dydt2-dydt*dzdt2)/((dzdt**2+dydt**2)**(3/2)))
+        radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
         return radius
 
         
