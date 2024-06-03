@@ -135,17 +135,94 @@ class waverider():
         #obtain the y_bar values for the z sample in self.y_bar_shockwave
         self.Get_Shockwave_Curve()
 
-        #obtain the first derivatives, 
-        # create a bezier object and use an inverse method to solve for the corresponding t in the curved region
-
-        self.bezier_shockwave=bcurve.Curve.from_nodes(np.asfortranarray(self.s_cp.T))
-        self.curved_osculating_planes=self.z_local_shockwave[self.z_local_shockwave[:]>self.width*self.X1]
-        self.t_values=[]
-        self.first_derivatives=[]
-        self.dzdt=[]
-        self.dydt=[]
-
+        #obtain the intersection with the upper surface in self.us_waverider.local_intersections_us
         self.Find_Intersections_With_Upper_Surface()
+
+        # next step is to obtain the LE points in the global coordinate system
+        # initialise LE object
+        self.leading_edge=np.zeros((self.n_planes+2,3))
+
+        # tip is already at 0,0,0
+        # set the last point
+        self.leading_edge[-1,:]=np.array([self.length,self.Local_to_Global(self.X2*self.height),self.width])
+
+        # initialise an object for the cone centers
+        self.cone_centers=np.zeros((self.n_planes,3))
+        # osculate through the planes
+        self.Compute_Leading_Edge_And_Cone_Centers()
+        
+    def Compute_Leading_Edge_And_Cone_Centers(self):
+
+        for i,z in enumerate(self.z_local_shockwave):
+             
+            if z<=self.X1*self.width or self.X2==0:
+                self.cone_centers[i,0]=self.length-((self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])/np.tan(self.beta*np.pi/180))
+                self.cone_centers[i,1]=self.Local_to_Global(self.local_intersections_us[i,1])
+                self.cone_centers[i,2]=float(z)
+
+                self.leading_edge[i+1,:]=self.cone_centers[i,:]
+
+            else:
+                #calculate corresponding t value
+                t=self.Find_t_Value(z)
+                # first derivative and radius
+                first_derivative,_,_=self.First_Derivative(t)
+                radius=self.Calculate_Radius_Curvature(t)
+                
+                # get angle theta
+                theta=np.arctan(first_derivative)
+                
+                # get x value for cone center
+                self.cone_centers[i,0]=float(self.length-radius/np.tan(self.beta*np.pi/180))
+
+                # get y value for cone center
+                self.cone_centers[i,1]=float(self.Local_to_Global(self.y_bar_shockwave[i,0])+np.cos(theta)*radius) 
+
+                # get z value for cone center
+                self.cone_centers[i,2]=float(z-radius*np.sin(theta))
+
+                # get the location of the intersection
+                self.leading_edge[i+1,:]=self.Intersection_With_Freestream_Plane(self.cone_centers[i,0],
+                                                                                 self.cone_centers[i,1],
+                                                                                 self.cone_centers[i,2],
+                                                                                 self.length,
+                                                                                 self.Local_to_Global(self.y_bar_shockwave[i,0]),
+                                                                                 z,
+                                                                                 self.Local_to_Global(self.local_intersections_us[i,1]))
+
+    def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
+
+        #  ALL COORDINATES IN GLOBAL SYSTEM
+        # x_C,y_C,z_C are coordinates of cone center
+        # x_S,y_S,z_S are coordinates of shock location in osculating plane
+
+        # need to find where y=y_target
+        # parametric curve defined with vectors CM and CS
+        k=(y_target-y_S)/(y_C-y_S)
+
+        x_I=x_S+k*(x_C-x_S)
+        y_I=y_target
+        z_I=z_S+k*(z_C-z_S)
+        return np.array([x_I,y_I,z_I])
+
+
+        
+    def Calculate_Radius_Curvature(self,t):
+        
+        _,dzdt,dydt=self.First_Derivative(float(t))
+        dzdt2,dydt2=self.Second_derivative(float(t))
+
+        radius= 1/((dzdt*dydt2-dydt*dzdt2)/((dzdt**2+dydt**2)**(3/2)))
+        return radius
+
+        
+    def Find_t_Value(self,z):
+
+        def f(t):
+            return self.Bezier_Shockwave(t)[0]-z
+        
+        intersection=root_scalar(f,bracket=[0,1])
+        return intersection.root
 
     def Find_Intersections_With_Upper_Surface(self):
 
@@ -157,9 +234,9 @@ class waverider():
                 self.local_intersections_us[i,0]=z
                 self.local_intersections_us[i,1]=self.Interpolate_Upper_Surface(z)
             else:
-                first_derivative=self.Get_First_Derivative(i)
-
-                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=z,y_s=self.y_bar_shockwave[i,:])
+                first_derivative,_,_=self.Get_First_Derivative(z)
+                # print(first_derivative)
+                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_bar_shockwave[i,:]))
                 self.local_intersections_us[i,:]=intersection
 
     def Intersection_With_Upper_Surface(self,first_derivative,z_s,y_s):
@@ -170,34 +247,23 @@ class waverider():
 
         # define the function used to find the intersection between the two curves
         def f(z):
-            return self.Equation_of_Line(z,m,c) - self.Interpolate_Upper_Surface(z)
+            return Equation_of_Line(z,m,c) - self.Interpolate_Upper_Surface(z)
         
         # use a computational method to get the root
         intersection = root_scalar(f, bracket=[0, self.width])
 
         # extract local coordinates of the root
         z=intersection.root
-        y=self.Equation_of_Line(z,m,c)
+        y=Equation_of_Line(z,m,c)
         return np.array([z,y])
 
-    def Get_First_Derivative(self,i):
-        z=self.z_local_shockwave[i]
-        y=self.y_bar_shockwave[i,:]
-        
-        t=self.bezier_shockwave.locate(np.asfortranarray([
-            [float(z)],
-            [float(y)],
-            ]))
-        print(z,y,t)
-        self.t_values.append(t)
+    def Get_First_Derivative(self,z):
+
+        t=self.Find_t_Value(z)
 
         first_derivative,dzdt,dydt=self.First_Derivative(t)
 
-        self.first_derivatives.append(first_derivative)
-        self.dzdt.append(dzdt)
-        self.dydt.append(dydt)
-
-        return first_derivative
+        return first_derivative,dzdt,dydt
 
 
     def Get_Shockwave_Curve(self):
@@ -285,5 +351,5 @@ class waverider():
 def Euclidean_Distance(x1,y1,x2,y2):
     return np.sqrt((x2-x1)**2+(y2-y1)**2)
 
-def Equation_of_Line(x,m,c):
-    return m*x+c
+def Equation_of_Line(z,m,c):
+    return m*z+c
