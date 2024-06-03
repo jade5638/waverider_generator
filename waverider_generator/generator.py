@@ -4,6 +4,13 @@ import bezier.curve as bcurve
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from scipy.interpolate import UnivariateSpline
+from conical_flow import shock_angle,cone_field
+# functions that can be imported:
+# TM
+# cone_field
+# Vt0
+# f
+# shock_angle
 '''
 +---------------------------+
 | Created by Jade Nassif    |
@@ -143,7 +150,7 @@ class waverider():
         #obtain the y_bar values for the z sample in self.y_bar_shockwave
         self.Get_Shockwave_Curve()
 
-        #obtain the intersection with the upper surface in self.us_waverider.local_intersections_us
+        #obtain the intersection with the upper surface in self.local_intersections_us
         self.Find_Intersections_With_Upper_Surface()
 
         # next step is to obtain the LE points in the global coordinate system
@@ -176,22 +183,54 @@ class waverider():
         self.Compute_Upper_Surface()
 
         # next step is to trace the streamlines, start by computing the flow deflection in flat regions
-        # self.theta
+        # store self.theta in degrees
         self.Compute_Deflection_Angle()
+
+        # compute the cone angle
+        # stored in self.cone_angle in degrees 
+        self.Get_Cone_Angle()
+
+
+        
+
+
         self.streams=[]
         
         self.Streamline_Tracing()
+
         
     def Streamline_Tracing(self):
 
-        for i,le_point in enumerate(self.leading_edge):
-            if le_point[0]<=self.X1*self.width or self.X2==0:
-                bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
-                x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
-                y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
-                z=np.full((y.shape),le_point[2])
+        # propagate the streamlines
+        Vr, Vt = cone_field(self.M_inf, self.cone_angle*np.pi/180, self.beta*np.pi/180, self.gamma)
+        def stode(t, x, y_max):
+            th = np.arctan(x[1] / x[0])
+            
+            dxdt = np.zeros(2)
+            
+            dxdt[0] = Vr(th) * np.cos(th) - np.sin(th) * Vt(th)
+            dxdt[1] = Vr(th) * np.sin(th) + np.cos(th) * Vt(th)
+            
+            return dxdt
+        def back(t, y, y_max):
+            return y[0] - y_max
 
-                self.streams.append(np.column_stack([x,y,z]))
+        back.terminal = True
+        for i,le_point in enumerate(self.leading_edge):
+            if i<len(self.leading_edge)-1:
+                if le_point[0]<=self.X1*self.width or self.X2==0:
+                    bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
+                    x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
+                    y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
+                    z=np.full((y.shape),le_point[2])
+
+                    self.streams.append(np.column_stack([x,y,z]))
+                else:
+                    # need to recalculate R
+                    r=np.sqrt((self.cone_centers[i+1,2]-self.z_local_shockwave[i+1])**2+(self.cone_centers[i+1,1]-self.Local_to_Global(self.y_bar_shockwave[i+1,0]))**2)
+                    base=np.sqrt((self.local_intersections_us[i+1,0]-self.z_local_shockwave[i+1])**2+(self.local_intersections_us[i+1,1]-self.y_bar_shockwave[i+1,0])**2)
+                    eta_le = r - base
+            
 
 
     def Compute_Upper_Surface(self):
@@ -405,7 +444,14 @@ class waverider():
         y=y-self.height
 
         return y
+    
+    def Get_Cone_Angle(self):
+
+        def f(theta):
+            shock_angle(self.M_inf,theta,self.gamma)[0]-self.beta*np.pi/180
         
+        sol=root_scalar(f,bracket=[0,self.beta*np.pi/180])
+        self.cone_angle=sol.root*180/np.pi
 
 # Auxiliary Functions
 def Euclidean_Distance(x1,y1,x2,y2):
@@ -417,19 +463,3 @@ def Equation_of_Line(z,m,c):
 
 def cot(angle):
     return 1/np.tan(angle)
-
-# def cone_field(Mach, theta, beta, gamma):
-#     d = np.arctan(2.0 / np.tan(beta) * (pow(Mach, 2) * pow(np.sin(beta),
-#                                                            2) - 1.0) / (pow(Mach, 2) * (gamma + np.cos(2 * beta)) + 2.0))
-#     Ma2 = 1.0 / np.sin(beta - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * pow(Mach, 2) * pow(
-#         np.sin(beta), 2)) / (gamma * pow(Mach, 2) * pow(np.sin(beta), 2) - (gamma - 1.0) / 2.0))
-#     V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * pow(Ma2, 2)) + 1.0)
-#     Vr = V * np.cos(beta - d)
-#     Vt = -(V * np.sin(beta - d))
-
-#     xt = np.array([Vr, Vt])
-    
-#     sol = solve_ivp(TM, (beta, theta), xt, args=(gamma,))
-#     Vrf = UnivariateSpline(sol.t[::-1], sol.y[0, ::-1], k=min(3, sol.t.size-1))
-#     Vtf = UnivariateSpline(sol.t[::-1], sol.y[1, ::-1], k=min(3, sol.t.size-1))
-#     return [Vrf, Vtf]
