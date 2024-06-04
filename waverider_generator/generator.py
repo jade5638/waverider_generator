@@ -229,17 +229,17 @@ class waverider():
                 z=np.full((y.shape),le_point[2])
 
                 self.streams.append(np.column_stack([x,y,z]))
-            else:
-                # need to recalculate R
-                r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_bar_shockwave[i,0]))**2)
-                base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])**2)
-                eta_le = r - base
-                t=float(self.Find_t_Value(self.z_local_shockwave[i]))
-                _,dzdt,dydt=self.First_Derivative(t)
-                alpha=np.arctan2(-dzdt,dydt)
-                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
-                stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
-                self.streams.append(stream+self.cone_centers[i,:])
+            # else:
+            #     # need to recalculate R
+            #     r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_bar_shockwave[i,0]))**2)
+            #     base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])**2)
+            #     eta_le = r - base
+            #     t=float(self.Find_t_Value(self.z_local_shockwave[i]))
+            #     _,dzdt,dydt=self.First_Derivative(t)
+            #     alpha=np.arctan2(-dzdt,dydt)
+            #     sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
+            #     stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
+            #     self.streams.append(stream+self.cone_centers[i,:])
 
 
             
