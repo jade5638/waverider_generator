@@ -4,7 +4,7 @@ import bezier.curve as bcurve
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from scipy.interpolate import UnivariateSpline
-from conical_flow import shock_angle,cone_field
+from waverider_generator.conical_flow import shock_angle,cone_field
 # functions that can be imported:
 # TM
 # cone_field
@@ -188,7 +188,7 @@ class waverider():
 
         # compute the cone angle
         # stored in self.cone_angle in degrees 
-        self.Get_Cone_Angle()
+        # self.Get_Cone_Angle()
 
 
         
@@ -202,6 +202,7 @@ class waverider():
     def Streamline_Tracing(self):
 
         # propagate the streamlines
+        '''
         Vr, Vt = cone_field(self.M_inf, self.cone_angle*np.pi/180, self.beta*np.pi/180, self.gamma)
         def stode(t, x, y_max):
             th = np.arctan(x[1] / x[0])
@@ -214,22 +215,33 @@ class waverider():
             return dxdt
         def back(t, y, y_max):
             return y[0] - y_max
+        
 
         back.terminal = True
-        for i,le_point in enumerate(self.leading_edge):
-            if i<len(self.leading_edge)-1:
-                if le_point[0]<=self.X1*self.width or self.X2==0:
-                    bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
-                    x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
-                    y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
-                    z=np.full((y.shape),le_point[2])
+        '''
+        leading_edge=self.leading_edge
+        for i,le_point in enumerate(leading_edge):
+            
+            if le_point[0]<=self.X1*self.width or self.X2==0:
+                bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
+                x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
+                y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
+                z=np.full((y.shape),le_point[2])
 
-                    self.streams.append(np.column_stack([x,y,z]))
-                else:
-                    # need to recalculate R
-                    r=np.sqrt((self.cone_centers[i+1,2]-self.z_local_shockwave[i+1])**2+(self.cone_centers[i+1,1]-self.Local_to_Global(self.y_bar_shockwave[i+1,0]))**2)
-                    base=np.sqrt((self.local_intersections_us[i+1,0]-self.z_local_shockwave[i+1])**2+(self.local_intersections_us[i+1,1]-self.y_bar_shockwave[i+1,0])**2)
-                    eta_le = r - base
+                self.streams.append(np.column_stack([x,y,z]))
+            else:
+                # need to recalculate R
+                r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_bar_shockwave[i,0]))**2)
+                base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])**2)
+                eta_le = r - base
+                t=float(self.Find_t_Value(self.z_local_shockwave[i]))
+                _,dzdt,dydt=self.First_Derivative(t)
+                alpha=np.arctan2(-dzdt,dydt)
+                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
+                stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
+                self.streams.append(stream+self.cone_centers[i,:])
+
+
             
 
 
@@ -448,9 +460,14 @@ class waverider():
     def Get_Cone_Angle(self):
 
         def f(theta):
-            shock_angle(self.M_inf,theta,self.gamma)[0]-self.beta*np.pi/180
+            betaa=float(shock_angle(self.M_inf,theta,self.gamma)[0])*180/np.pi
+            diff=betaa-self.beta
+            if diff<0.1:
+                diff=0
+            print(betaa)
+            return diff
         
-        sol=root_scalar(f,bracket=[0,self.beta*np.pi/180])
+        sol=root_scalar(f,bracket=[9*np.pi/180,self.beta*np.pi/180],x0=10*np.pi/180,xtol=0.01)
         self.cone_angle=sol.root*180/np.pi
 
 # Auxiliary Functions
