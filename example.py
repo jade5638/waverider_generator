@@ -74,5 +74,6 @@ y_ls = np.array([line[:, 1] for line in streams])
 z_ls = np.array([line[:, 2] for line in streams])
 ax.plot_surface(x_ls, y_ls, z_ls,color='red')
 plt.show()
+
 #%%
 ls[18]

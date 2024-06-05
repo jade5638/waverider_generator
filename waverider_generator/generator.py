@@ -219,6 +219,7 @@ class waverider():
 
         back.terminal = True
         '''
+        
         leading_edge=self.leading_edge
         for i,le_point in enumerate(leading_edge):
             
