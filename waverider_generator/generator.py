@@ -24,11 +24,12 @@ The purpose of this code is to generate waverider geometries based on the oscula
 cone inverse design method. The user inputs the following:
 - Freestream Mach number 'M_inf'
 - Shock angle 'beta'
-- Height of the waverider at the base plane 'height"
-- Width of the waverider at the base plane 'width"
+- Height of the waverider at the base plane 'height', note this height is measured from
+  the shockwave and not the lower surface
+- Width of the waverider at the base plane 'width'
 - Design parameters 'X1', 'X2', 'X3', 'X4'
-- Number of osculating planes 'n_planes'
-- Number of points in the streamwise direction 'n_streamwise'
+- Number of osculating planes 'n_planes', the symmetry plane is not included
+- Number of discrete points desired in the streamwise direction 'n_streamwise'
 
 The parametrisation is based on the work by Son et. al [1]
 
@@ -219,7 +220,7 @@ class waverider():
 
         back.terminal = True
         '''
-        
+
         leading_edge=self.leading_edge
         for i,le_point in enumerate(leading_edge):
             
@@ -315,7 +316,7 @@ class waverider():
     def Calculate_Radius_Curvature(self,t):
         
         _,dzdt,dydt=self.First_Derivative(float(t))
-        dzdt2,dydt2=self.Second_derivative(float(t))
+        dzdt2,dydt2=self.Second_Derivative(float(t))
 
         radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
         return radius
@@ -344,6 +345,8 @@ class waverider():
                 intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_bar_shockwave[i,:]))
                 self.local_intersections_us[i,:]=intersection
 
+    # function which determines intersection of an osculating plan with the upper surface
+    # curve
     def Intersection_With_Upper_Surface(self,first_derivative,z_s,y_s):
 
         # get the constant c and slope for the line between the two points
@@ -362,15 +365,18 @@ class waverider():
         y=Equation_of_Line(z,m,c)
         return np.array([z,y])
 
+    # get the first derivative for a z value along the shockwave
     def Get_First_Derivative(self,z):
 
+        # get the corresponding t value
         t=self.Find_t_Value(z)
 
         first_derivative,dzdt,dydt=self.First_Derivative(t)
 
         return first_derivative,dzdt,dydt
 
-
+    # get the y_bar coordinates of all points along the shockwave curve by means of 
+    # interpolation
     def Get_Shockwave_Curve(self):
 
         self.y_bar_shockwave=np.zeros((self.n_planes,1))
@@ -381,6 +387,7 @@ class waverider():
             else:
                 self.y_bar_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
 
+    # create an interp1d object for the shockwave curve 
     def Create_Interpolated_Shockwave(self,n):
         
         t_values=np.linspace(0,1,n)
@@ -392,7 +399,8 @@ class waverider():
         
         self.Interpolate_Shockwave=interp1d(points[:,0],points[:,1],kind='linear')
 
-
+    # creates an interp1d object for the upper surface, used to find intersection easily
+    # with root_scalar
     def Create_Interpolated_Upper_Surface(self,n):
 
         # values of t for the bezier curve
@@ -406,27 +414,12 @@ class waverider():
 
         # store interp1d objected as an attribute
         self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
-    
-    def Compute_Deflection_Angle(self):
-
-        tanTheta=2*cot(self.beta*np.pi/180)*(self.M_inf**2*np.sin(self.beta*np.pi/180)**2-1)/(self.M_inf**2*(self.gamma+np.cos(2*self.beta*np.pi/180))+2)
-
-        self.theta=np.arctan(tanTheta)*180/np.pi
-
-    # def Calculate_First_Derivatives(self):
-
-        # calculate slope for all 
-
-
-
-
-
-
 
     """
     AUXILIARY FUNCTIONS    
     """    
-
+    # bezier curve defining the shockwave
+    # returns np.array([z,y])
     def Bezier_Shockwave(self,t):
 
         point=(1-t)**4*self.s_P0+4*(1-t)**3*t*self.s_P1+6*(1-t)**2*t**2*self.s_P2+4*(1-t)*t**3*self.s_P3+t**4*self.s_P4
@@ -440,24 +433,29 @@ class waverider():
     
         return first_derivative[1]/first_derivative[0],first_derivative[0],first_derivative[1]
     
-    # returns components of second derivative, z and y respectively
-    def Second_derivative(self, t):
+    # returns components of second derivative of point along shockwave curve with respect to t
+    # z and y respectively
+    def Second_Derivative(self, t):
 
         second_derivative = 12 * (1-t)**2 * (self.s_P2 - 2 * self.s_P1 + self.s_P0) + 24 * (1-t) * t * (self.s_P3 - 2 * self.s_P2 + self.s_P1) + 12 * t**2 * (self.s_P4 - 2 * self.s_P3 + self.s_P2)
         return second_derivative[0],second_derivative[1]
     
+    # Bezier curve of upper surface
+    # output is an np.array([z,y]) in local coordinates
     def Bezier_Upper_Surface(self, t):
 
         point = (1 - t)**3 * self.us_P0 + 3 * (1 - t)**2 * t * self.us_P1 + 3 * (1 - t) * t**2 * self.us_P2 + t**3 * self.us_P3
 
         return point
-
+    
+    #convert from local to global y coordinate
     def Local_to_Global(self,y):
-    # convert local coordinates to global coordinates
+
         y=y-self.height
 
         return y
     
+    # get the cone angle from a shock angle
     def Get_Cone_Angle(self):
 
         def f(theta):
@@ -471,13 +469,23 @@ class waverider():
         sol=root_scalar(f,bracket=[9*np.pi/180,self.beta*np.pi/180],x0=10*np.pi/180,xtol=0.01)
         self.cone_angle=sol.root*180/np.pi
 
-# Auxiliary Functions
+    # get the deflection angle resulting from the shock angle and flow conditions
+    def Compute_Deflection_Angle(self):
+
+        tanTheta=2*cot(self.beta*np.pi/180)*(self.M_inf**2*np.sin(self.beta*np.pi/180)**2-1)/(self.M_inf**2*(self.gamma+np.cos(2*self.beta*np.pi/180))+2)
+
+        self.theta=np.arctan(tanTheta)*180/np.pi
+
+'''EXTERNAL AUXILIARY FUNCTIONS'''
+
+# calculates the euclidean distance between two points in 2D
 def Euclidean_Distance(x1,y1,x2,y2):
     return np.sqrt((x2-x1)**2+(y2-y1)**2)
 
+# Equation of a straight line
 def Equation_of_Line(z,m,c):
     return m*z+c
 
-
+# cotangent
 def cot(angle):
     return 1/np.tan(angle)
