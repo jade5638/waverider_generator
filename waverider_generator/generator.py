@@ -67,9 +67,10 @@ class waverider():
         #ratio of specific heats
         self.gamma=1.4
 
-        #computes self.theta
+        #computes self.theta, the deflection angle corresponding to a shock angle in oblique shock relations
         self.Compute_Deflection_Angle()
 
+        # extract the design parameters
         self.X1=dp[0]
         self.X2=dp[1]
         self.X3=dp[2]
@@ -78,13 +79,15 @@ class waverider():
         # check that condition for inverse design is respected
         if not ((self.X2/((1-self.X1)**4))<(7/64)*(self.width/self.height)**4):
             raise ValueError("Condition for inverse design not respected, check design parameters X1 and X2")
-    
+        
         # check optional input "n_planes"
         if "n_planes" in kwargs:
             n_planes = kwargs["n_planes"]
             if not (isinstance(n_planes, int) and n_planes >= 10):
                 raise TypeError("The number of planes must be an integer and at least 10")
             self.n_planes = n_planes
+        else:
+            self.n_planes = 10
 
         # check optional input "n_streamwise"
         if "n_streamwise" in kwargs:
@@ -92,12 +95,19 @@ class waverider():
             if not (isinstance(n_streamwise, int) and n_streamwise >= 10):
                 raise TypeError("The number of streamwise points must be an integer and at least 10")
             self.n_streamwise = n_streamwise
+        else:
+            self.n_streamwise = 10
 
         # obtain length of waverider from tip to base plane
         self.length=height/np.tan(self.beta*np.pi/180)
 
-        ''''define the shockwave based on the control points 
-        -----------------------------------------------------'''
+        ''''
+        +--------------------------------------------------+
+        | define the shockwave based on the control points |
+        +--------------------------------------------------+
+        '''
+        # stores coordinates of all the control points in format z_bar,y_bar
+        # four of the points are y_bar=0 already
         self.s_cp=np.zeros((5,2))
 
         # all five points are evenly distributed in z
@@ -114,8 +124,12 @@ class waverider():
         self.s_P3=self.s_cp[3,:]
         self.s_P4=self.s_cp[4,:]
 
-        ''' define the upper surface curve
-        ---------------------------------------------------'''
+        ''''
+        +---------------------------------------------+
+        | define the upper surface via control points |
+        +---------------------------------------------+
+        '''
+        # same procedure as with shockwave curve
         self.us_cp=np.zeros((4,2))
 
         # assign z coordinates of all points defining upper surface, equally spaced
@@ -135,71 +149,114 @@ class waverider():
         self.us_P2=self.us_cp[2,:]
         self.us_P3=self.us_cp[3,:]
 
-        # create an interpolation object for upper surface
+        ''''
+        +-------------------------------------------------------------------+
+        | create interpolation objects for shockwave and upper surface curve|
+        +-------------------------------------------------------------------+
+        '''
+        # create an interpolation object for upper surface curve and curved part of the shockwave:
         # self.Interpolate_Upper_Surface
+        # self.Interpolate_Shockwave
         self.Create_Interpolated_Upper_Surface(n=n_upper_surface)
+        self.Create_Interpolated_Shockwave(n=n_shockwave)
 
+        ''''
+        +------------------------------------------------------------------+
+        | find intersections of osculating planes with upper surface curve |
+        +------------------------------------------------------------------+
+        '''
         # next step is to calculate intersections with upper surface
         # start by defining the sample of points for the shockwave in local coordinates z and y
         self.z_local_shockwave=np.linspace(0,self.width,self.n_planes+2)
-        self.z_local_shockwave=self.z_local_shockwave[1:-1]
-        
-        #calculate the corresponding y_bar coordinates by first creating a interp1d object for the 
-        # non-flat part of the curve
-        self.Create_Interpolated_Shockwave(n=n_shockwave)
+        self.z_local_shockwave=self.z_local_shockwave[1:-1] 
 
-        #obtain the y_bar values for the z sample in self.y_bar_shockwave
+        #obtain the y_bar values for the z sample in self.y_local_shockwave
+        self.y_local_shockwave=np.zeros((self.n_planes,1))
         self.Get_Shockwave_Curve()
 
         #obtain the intersection with the upper surface in self.local_intersections_us
+        self.local_intersections_us=np.zeros((self.n_planes,2))
         self.Find_Intersections_With_Upper_Surface()
-
+        ''''
+        +-------------------------------------------+
+        | compute the leading edge and cone centers |
+        +-------------------------------------------+
+        '''
         # next step is to obtain the LE points in the global coordinate system
         # initialise LE object
         self.leading_edge=np.zeros((self.n_planes+2,3))
 
         # tip is already at 0,0,0
-        # set the last point
+        # set the last point (tip)
         self.leading_edge[-1,:]=np.array([self.length,self.Local_to_Global(self.X2*self.height),self.width])
 
         # initialise an object for the cone centers
         self.cone_centers=np.zeros((self.n_planes,3))
-        # osculate through the planes
+
+        # osculate through the planes and populate self.cone_centers and self.leading_edge
         self.Compute_Leading_Edge_And_Cone_Centers()
 
+        ''''
+        +---------------------------+
+        | compute the upper surface |
+        +---------------------------+
+        '''
         # next step is to compute the upper surface
+        # stored in this format for easy visualisation in matplotlib
         self.upper_surface_x=np.zeros((self.n_planes+1,self.n_streamwise))
         self.upper_surface_y=np.zeros((self.n_planes+1,self.n_streamwise))
         self.upper_surface_z=np.zeros((self.n_planes+1,self.n_streamwise))
+
         # add the symmetry plane
         self.upper_surface_x[0,:]=np.linspace(0,self.length,self.n_streamwise)
         self.upper_surface_y[0,:]=0
         self.upper_surface_z[0,:]=0
-        
 
-        #create an alternative way of storing the upper surface streams
-        
-
-        # compute the upper surface in self.leading edge
         self.Compute_Upper_Surface()
 
-        # next step is to trace the streamlines, start by computing the flow deflection in flat regions
+        # add the tip point
+        x_tip = np.full((1, self.n_streamwise), self.length)
+        y_tip =np.full((1,self.n_streamwise),self.height*self.X2-self.height)
+        z_tip =np.full((1,self.n_streamwise),self.width)
+
+        self.upper_surface_x= np.vstack([self.upper_surface_x, x_tip])
+        self.upper_surface_y= np.vstack([self.upper_surface_y, y_tip])
+        self.upper_surface_z= np.vstack([self.upper_surface_z, z_tip])
+
+        # store in a streams format 
+        self.upper_surface_streams=[]
+        self.Streams_Format()
+        
+        '''
+        +---------------------------+
+        | compute the lower surface |
+        +---------------------------+
+        '''
+        '''
+        # next step is to trace the streamlines, start by computing the flow deflection angle in flat regions
         # store self.theta in degrees
         self.Compute_Deflection_Angle()
 
         # compute the cone angle
         # stored in self.cone_angle in degrees 
         # self.Get_Cone_Angle()
-
-
-        
-
-
         self.streams=[]
         
         self.Streamline_Tracing()
+        '''
+    def Streams_Format(self):
 
-        
+        for i in range(self.n_planes+2):
+
+            x=self.upper_surface_x[i,:]
+            y=self.upper_surface_y[i,:]
+            z=self.upper_surface_z[i,:]
+            self.upper_surface_streams.append(np.vstack([x,y,z]).T)
+
+            # keep only twice the same point for the tip
+            if i==self.n_planes+1:
+                self.upper_surface_streams[i]=self.upper_surface_streams[i][0:2,:]
+
     def Streamline_Tracing(self):
 
         # propagate the streamlines
@@ -233,8 +290,8 @@ class waverider():
                 self.streams.append(np.column_stack([x,y,z]))
             # else:
             #     # need to recalculate R
-            #     r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_bar_shockwave[i,0]))**2)
-            #     base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])**2)
+            #     r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_local_shockwave[i,0]))**2)
+            #     base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_local_shockwave[i,0])**2)
             #     eta_le = r - base
             #     t=float(self.Find_t_Value(self.z_local_shockwave[i]))
             #     _,dzdt,dydt=self.First_Derivative(t)
@@ -259,13 +316,14 @@ class waverider():
         for i,z in enumerate(self.z_local_shockwave):
              
             if z<=self.X1*self.width or self.X2==0:
-                self.cone_centers[i,0]=self.length-((self.local_intersections_us[i,1]-self.y_bar_shockwave[i,0])/np.tan(self.beta*np.pi/180))
+                self.cone_centers[i,0]=self.length-((self.local_intersections_us[i,1]-self.y_local_shockwave[i,0])/np.tan(self.beta*np.pi/180))
                 self.cone_centers[i,1]=self.Local_to_Global(self.local_intersections_us[i,1])
                 self.cone_centers[i,2]=float(z)
 
                 self.leading_edge[i+1,:]=self.cone_centers[i,:]
 
             else:
+
                 #calculate corresponding t value
                 t=self.Find_t_Value(z)
                 # first derivative and radius
@@ -280,7 +338,7 @@ class waverider():
                 self.cone_centers[i,0]=float(self.length-radius/np.tan(self.beta*np.pi/180))
 
                 # get y value for cone center
-                self.cone_centers[i,1]=float(self.Local_to_Global(self.y_bar_shockwave[i,0])+np.cos(theta)*radius) 
+                self.cone_centers[i,1]=float(self.Local_to_Global(self.y_local_shockwave[i,0])+np.cos(theta)*radius) 
 
                 # get z value for cone center
                 self.cone_centers[i,2]=float(z-radius*np.sin(theta))
@@ -290,49 +348,15 @@ class waverider():
                                                                                 self.cone_centers[i,1],
                                                                                 self.cone_centers[i,2],
                                                                                 self.length,
-                                                                                self.Local_to_Global(self.y_bar_shockwave[i,0]),
+                                                                                self.Local_to_Global(self.y_local_shockwave[i,0]),
                                                                                 z,
                                                                                 self.Local_to_Global(self.local_intersections_us[i,1]))
                 
 
 
-    def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
-
-        #  ALL COORDINATES IN GLOBAL SYSTEM
-        # x_C,y_C,z_C are coordinates of cone center
-        # x_S,y_S,z_S are coordinates of shock location in osculating plane
-
-        # need to find where y=y_target
-        # parametric curve defined with vectors CM and CS
-        k=(y_target-y_S)/(y_C-y_S)
-
-        x_I=x_S+k*(x_C-x_S)
-        y_I=y_target
-        z_I=z_S+k*(z_C-z_S)
-        return np.array([x_I,y_I,z_I])
-
-
-        
-    def Calculate_Radius_Curvature(self,t):
-        
-        _,dzdt,dydt=self.First_Derivative(float(t))
-        dzdt2,dydt2=self.Second_Derivative(float(t))
-
-        radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
-        return radius
-
-        
-    def Find_t_Value(self,z):
-
-        def f(t):
-            return self.Bezier_Shockwave(t)[0]-z
-        
-        intersection=root_scalar(f,bracket=[0,1])
-        return intersection.root
-
+    
+    # find all intersections with the upper surface
     def Find_Intersections_With_Upper_Surface(self):
-
-        self.local_intersections_us=np.zeros((self.n_planes,2))
 
         for i,z in enumerate(self.z_local_shockwave):
 
@@ -342,11 +366,15 @@ class waverider():
             else:
                 first_derivative,_,_=self.Get_First_Derivative(z)
                 # print(first_derivative)
-                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_bar_shockwave[i,:]))
+                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_local_shockwave[i,:]))
                 self.local_intersections_us[i,:]=intersection
 
-    # function which determines intersection of an osculating plan with the upper surface
+    # function which determines intersection of an osculating plane with the upper surface
     # curve
+    # inputs:
+    # - first derivative at the shockwave point (dy/dz)
+    # - z_s and y_s which are the local coordinates of the point
+    # outputs the coordinates of the intersection in local coordinates
     def Intersection_With_Upper_Surface(self,first_derivative,z_s,y_s):
 
         # get the constant c and slope for the line between the two points
@@ -357,12 +385,13 @@ class waverider():
         def f(z):
             return Equation_of_Line(z,m,c) - self.Interpolate_Upper_Surface(z)
         
-        # use a computational method to get the root
+        # use root_scalar method to get the root
         intersection = root_scalar(f, bracket=[0, self.width])
 
         # extract local coordinates of the root
         z=intersection.root
         y=Equation_of_Line(z,m,c)
+
         return np.array([z,y])
 
     # get the first derivative for a z value along the shockwave
@@ -379,13 +408,13 @@ class waverider():
     # interpolation
     def Get_Shockwave_Curve(self):
 
-        self.y_bar_shockwave=np.zeros((self.n_planes,1))
+        
 
         for i,z in enumerate(self.z_local_shockwave):
             if z<=self.width*self.X1:
-                self.y_bar_shockwave[i,0]=0
+                self.y_local_shockwave[i,0]=0
             else:
-                self.y_bar_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
+                self.y_local_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
 
     # create an interp1d object for the shockwave curve 
     def Create_Interpolated_Shockwave(self,n):
@@ -475,6 +504,42 @@ class waverider():
         tanTheta=2*cot(self.beta*np.pi/180)*(self.M_inf**2*np.sin(self.beta*np.pi/180)**2-1)/(self.M_inf**2*(self.gamma+np.cos(2*self.beta*np.pi/180))+2)
 
         self.theta=np.arctan(tanTheta)*180/np.pi
+    
+    # finds the intersection with the local freestream plane by finding the point where y=y+target
+    def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
+
+        #  ALL COORDINATES IN GLOBAL SYSTEM
+        # x_C,y_C,z_C are coordinates of cone center
+        # x_S,y_S,z_S are coordinates of shock location in osculating plane
+
+        # need to find where y=y_target
+        # parametric curve
+        k=(y_target-y_S)/(y_C-y_S)
+
+        x_I=x_S+k*(x_C-x_S)
+        y_I=y_target
+        z_I=z_S+k*(z_C-z_S)
+        return np.array([x_I,y_I,z_I])
+
+
+    # calculate the radius of curvature for a given t
+    def Calculate_Radius_Curvature(self,t):
+        
+        _,dzdt,dydt=self.First_Derivative(float(t))
+        dzdt2,dydt2=self.Second_Derivative(float(t))
+
+        radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
+        return radius
+
+    # find the t value which corresponds to a z value
+    def Find_t_Value(self,z):
+
+        def f(t):
+            return self.Bezier_Shockwave(t)[0]-z
+        
+        intersection=root_scalar(f,bracket=[0,1])
+
+        return intersection.root
 
 '''EXTERNAL AUXILIARY FUNCTIONS'''
 
