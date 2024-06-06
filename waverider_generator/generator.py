@@ -275,16 +275,19 @@ class waverider():
         
         leading_edge=self.leading_edge
         y_local_shockwave=self.y_local_shockwave
-        y_local_shockwave=np.vstack(np.array([[0]]),y_local_shockwave,np.array([[self.X2*self.height]]))
+        y_local_shockwave=np.vstack((np.array([[0]]),y_local_shockwave,np.array([[self.X2*self.height]])))
 
         z_local_shockwave=self.z_local_shockwave[:,None]
-        z_local_shockwave=np.vstack(np.array([[0]]),z_local_shockwave,np.array([[self.width]]))
+        z_local_shockwave=np.vstack((np.array([[0]]),z_local_shockwave,np.array([[self.width]])))
 
         cone_centers=self.cone_centers
-        cone_centers=np.vstack(np.array([[0,0,0]]),cone_centers,np.array([[self.length,self.Local_to_Global(self.X2*self.height),self.width]]))
+        cone_centers=np.vstack((np.array([[0,0,0]]),cone_centers,np.array([[self.length,self.Local_to_Global(self.X2*self.height),self.width]])))
+
+        local_intersections_us=self.local_intersections_us
+        local_intersections_us=np.vstack((np.array([[0,self.height]]),local_intersections_us,np.array([[self.width,self.X2*self.height]])))
+
 
         for i,le_point in enumerate(leading_edge):
-            
             # flat region
             if le_point[0]<=self.X1*self.width or self.X2==0:
 
@@ -297,31 +300,44 @@ class waverider():
                 z=np.full((y.shape),le_point[2])
 
                 self.lower_surface_streams.append(np.column_stack([x,y,z]))
-                
+
+            # tip
+            elif i==len(leading_edge)-1:
+                stream=np.vstack((le_point,le_point))
+                self.lower_surface_streams.append(stream)
             # curved region
             else:
 
                 # need calculate R-height of osculating plane
                 eta_le=Euclidean_Distance(
-                    self.local_intersections_us[i,0],
-                    self.Local_to_Global(self.local_intersections_us[i,1]),
-                    self.cone_centers[i,2],
-                    self.cone_centers[i,1]
+                    local_intersections_us[i,0],
+                    self.Local_to_Global(local_intersections_us[i,1]),
+                    cone_centers[i,2],
+                    cone_centers[i,1]
                 ) 
                 r=Euclidean_Distance(
                     z_local_shockwave[i,0],
                     self.Local_to_Global(y_local_shockwave[i,0]),
-                    self.cone_centers[i,2],
-                    self.cone_centers[i,1]
+                    cone_centers[i,2],
+                    cone_centers[i,1]
                 ) 
                 # calculate the angle to rotate the streamlines by
-                t=float(self.Find_t_Value(z_local_shockwave[i]))
-                m,_,_=self.First_Derivative(t)
+                m,_,_=self.Get_First_Derivative(z_local_shockwave[i,0])
+                # t=float(self.Find_t_Value(z_local_shockwave[i,0]))
+
+                # m,_,_=self.First_Derivative(t)
                 alpha=np.arctan(m)
 
-                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
-                stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
-            #     self.streams.append(stream+self.cone_centers[i,:])
+                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1)
+                # sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(self.length,), max_step=0.1)
+                stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
+
+                stream[:,0]=stream[:,0]
+                stream[:,1]=stream[:,1]+cone_centers[i,1]
+                stream[:,2]=stream[:,2]+cone_centers[i,2]
+
+
+                self.lower_surface_streams.append(stream)
 
 
             
@@ -507,20 +523,6 @@ class waverider():
 
         return y
     
-    # get the cone angle from a shock angle
-    def Get_Cone_Angle(self):
-
-        def f(theta):
-            betaa=float(shock_angle(self.M_inf,theta,self.gamma)[0])*180/np.pi
-            diff=betaa-self.beta
-            if diff<0.1:
-                diff=0
-            print(betaa)
-            return diff
-        
-        sol=root_scalar(f,bracket=[9*np.pi/180,self.beta*np.pi/180],x0=10*np.pi/180,xtol=0.01)
-        self.cone_angle=sol.root*180/np.pi
-
     # get the deflection angle resulting from the shock angle and flow conditions
     def Compute_Deflection_Angle(self):
 

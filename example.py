@@ -11,13 +11,23 @@ M_inf=5
 beta=15
 height=1.34
 width=3
-dp=[0.33,0,0.06,0.37]
+dp=[0.17,0.98,0.87,0.64]
 
 waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=20,n_streamwise=11)
+le=waverider.leading_edge
+#%%
+ls_streams=waverider.lower_surface_streams
+i=11
+# x=np.linspace(0,width,20)
+
+print(ls_streams[i])
+print("\n")
+print(le[i,:])
+# print(x[i])
+#%%
 
 inters=waverider.local_intersections_us
 lowers=np.column_stack([waverider.z_local_shockwave,waverider.y_local_shockwave])
-
 
 plt.figure()
 for point1, point2 in zip(inters, lowers):
@@ -26,10 +36,11 @@ for point1, point2 in zip(inters, lowers):
     plt.plot(x_values, z_values, 'bo-')
 shockwave=np.vstack([np.array([0,0]),lowers,waverider.s_P4])
 upper_surface=np.vstack([np.array([0,waverider.height]),inters,waverider.us_P3])
-# ls=waverider.streams
-# z_ls = np.array([line[:, 2] for line in ls])[:,-1]
-# y_ls = np.array([line[:, 1] for line in ls])[:,-1]+height
-# plt.plot(z_ls,y_ls,'--k')
+ls_streams=waverider.lower_surface_streams
+lower_surface = np.vstack([stream[-1,:] for stream in ls_streams])
+z_ls=lower_surface[:,2]
+y_ls = lower_surface[:,1]+height
+plt.plot(z_ls,y_ls,'--ok')
 plt.plot(upper_surface[:,0],upper_surface[:,1],'r-')
 plt.plot(shockwave[:, 0], shockwave[:, 1],'b-')
 X2=waverider.us_P3
@@ -39,7 +50,7 @@ plt.xlabel('Z-axis')
 plt.ylabel('Y-axis')
 plt.title('Osculating planes')
 plt.gca().set_aspect('equal')
-
+#%%
 le=waverider.leading_edge
 plt.figure()
 plt.plot(le[:,2],-le[:,0],'b-')
@@ -76,8 +87,19 @@ plt.gca().set_aspect('equal')
 plt.show()
 
 #%%
-from waverider_generator.conical_flow import shock_angle
+from waverider_generator.flowfield import shock_angle,cone_angle
 import numpy as np
-
-shock_angle(5,9.23*np.pi/180,1.4)*180/np.pi
+M=5
+gamma=1.4
+# beta=shock_angle(M,theta,gamma)
+beta=20
+theta_comp=cone_angle(M,beta,gamma)
 # %%
+le=waverider.leading_edge
+i=15
+x=np.linspace(0,width,20)
+
+print(ls_streams[8])
+print("\n")
+print(le[i,:])
+print(x[i])

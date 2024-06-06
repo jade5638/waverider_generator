@@ -71,12 +71,11 @@ def f(x, Mach, theta_rad, gamma):
     V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * Ma2**2) + 1.0)
 
     # get velocity components fom V (radial and tangential)
-    Vr = V * np.cos(x - d)
-    Vt = -(V * np.sin(x - d))
+    Vr = float(V * np.cos(x - d))
+    Vt = float(-(V * np.sin(x - d)))
 
     # store the initial conditions
-    xt = np.array([Vr[0], Vt[0]])
-
+    xt = np.array([Vr, Vt])
     # Inputs:
     # (x, 0.0) --> integration interval, starting from shock angle 'x' to 0.0 (cone axis)
     # xt --> initial conditions for the TM equations
@@ -125,8 +124,8 @@ def cone_angle(Mach, shock_angle_deg, gamma):
     Vt = -(V * np.sin(shock_angle_rad - d))
 
     # store the initial conditions
-    xt = np.array([Vr[0], Vt[0]])
-    
+    xt = np.array([Vr, Vt])
+
     sol = solve_ivp(TM_cone, (shock_angle_rad, 0.0), xt, events=cone_event)
     
     # extract cone angle
