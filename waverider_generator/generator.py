@@ -326,13 +326,17 @@ class waverider():
                 # t=float(self.Find_t_Value(z_local_shockwave[i,0]))
 
                 # m,_,_=self.First_Derivative(t)
+
                 alpha=np.arctan(m)
 
-                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1)
-                # sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(self.length,), max_step=0.1)
-                stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
+                x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
 
-                stream[:,0]=stream[:,0]
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1)
+                # sol = solve_ivp(stode, (0, 1000), [self.length-le_point[0], eta_le], events=back, args=(self.length,), max_step=1)
+                stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
+                # stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
+
+                stream[:,0]=stream[:,0]+cone_centers[i,0]
                 stream[:,1]=stream[:,1]+cone_centers[i,1]
                 stream[:,2]=stream[:,2]+cone_centers[i,2]
 

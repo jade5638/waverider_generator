@@ -11,13 +11,14 @@ M_inf=5
 beta=15
 height=1.34
 width=3
-dp=[0.17,0.98,0.87,0.64]
-
-waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=20,n_streamwise=11)
+dp=[0.13,0.90,0.64,0.49]
+n_planes=20
+n_streamwise=10
+waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise)
 le=waverider.leading_edge
 #%%
 ls_streams=waverider.lower_surface_streams
-i=11
+i=21
 # x=np.linspace(0,width,20)
 
 print(ls_streams[i])
