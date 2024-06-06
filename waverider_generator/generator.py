@@ -4,13 +4,8 @@ import bezier.curve as bcurve
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from scipy.interpolate import UnivariateSpline
-from waverider_generator.conical_flow import shock_angle,cone_field
-# functions that can be imported:
-# TM
-# cone_field
-# Vt0
-# f
-# shock_angle
+from waverider_generator.flowfield import cone_angle,cone_field
+
 '''
 +---------------------------+
 | Created by Jade Nassif    |
@@ -232,18 +227,18 @@ class waverider():
         | compute the lower surface |
         +---------------------------+
         '''
-        '''
+        
         # next step is to trace the streamlines, start by computing the flow deflection angle in flat regions
         # store self.theta in degrees
         self.Compute_Deflection_Angle()
 
-        # compute the cone angle
-        # stored in self.cone_angle in degrees 
-        # self.Get_Cone_Angle()
-        self.streams=[]
+        # compute the cone angle in degrees
+        self.cone_angle=cone_angle(self.M_inf,self.beta,self.gamma)
+
+        self.lower_surface_streams=[]
         
         self.Streamline_Tracing()
-        '''
+        
     def Streams_Format(self):
 
         for i in range(self.n_planes+2):
@@ -260,9 +255,10 @@ class waverider():
     def Streamline_Tracing(self):
 
         # propagate the streamlines
-        '''
-        Vr, Vt = cone_field(self.M_inf, self.cone_angle*np.pi/180, self.beta*np.pi/180, self.gamma)
+        Vr, Vt = cone_field(self.M_inf,self.cone_angle*np.pi/180,self.beta*np.pi/180,self.gamma)
+
         def stode(t, x, y_max):
+
             th = np.arctan(x[1] / x[0])
             
             dxdt = np.zeros(2)
@@ -271,33 +267,60 @@ class waverider():
             dxdt[1] = Vr(th) * np.sin(th) + np.cos(th) * Vt(th)
             
             return dxdt
+        
         def back(t, y, y_max):
             return y[0] - y_max
         
-
         back.terminal = True
-        '''
-
+        
         leading_edge=self.leading_edge
+        y_local_shockwave=self.y_local_shockwave
+        y_local_shockwave=np.vstack(np.array([[0]]),y_local_shockwave,np.array([[self.X2*self.height]]))
+
+        z_local_shockwave=self.z_local_shockwave[:,None]
+        z_local_shockwave=np.vstack(np.array([[0]]),z_local_shockwave,np.array([[self.width]]))
+
+        cone_centers=self.cone_centers
+        cone_centers=np.vstack(np.array([[0,0,0]]),cone_centers,np.array([[self.length,self.Local_to_Global(self.X2*self.height),self.width]]))
+
         for i,le_point in enumerate(leading_edge):
             
+            # flat region
             if le_point[0]<=self.X1*self.width or self.X2==0:
+
+                # trigonometry with deflection angle
                 bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
+
+                # store the x,y and z in a streams
                 x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
                 y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
                 z=np.full((y.shape),le_point[2])
 
-                self.streams.append(np.column_stack([x,y,z]))
-            # else:
-            #     # need to recalculate R
-            #     r=np.sqrt((self.cone_centers[i,2]-self.z_local_shockwave[i])**2+(self.cone_centers[i,1]-self.Local_to_Global(self.y_local_shockwave[i,0]))**2)
-            #     base=np.sqrt((self.local_intersections_us[i,0]-self.z_local_shockwave[i])**2+(self.local_intersections_us[i,1]-self.y_local_shockwave[i,0])**2)
-            #     eta_le = r - base
-            #     t=float(self.Find_t_Value(self.z_local_shockwave[i]))
-            #     _,dzdt,dydt=self.First_Derivative(t)
-            #     alpha=np.arctan2(-dzdt,dydt)
-            #     sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
-            #     stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
+                self.lower_surface_streams.append(np.column_stack([x,y,z]))
+                
+            # curved region
+            else:
+
+                # need calculate R-height of osculating plane
+                eta_le=Euclidean_Distance(
+                    self.local_intersections_us[i,0],
+                    self.Local_to_Global(self.local_intersections_us[i,1]),
+                    self.cone_centers[i,2],
+                    self.cone_centers[i,1]
+                ) 
+                r=Euclidean_Distance(
+                    z_local_shockwave[i,0],
+                    self.Local_to_Global(y_local_shockwave[i,0]),
+                    self.cone_centers[i,2],
+                    self.cone_centers[i,1]
+                ) 
+                # calculate the angle to rotate the streamlines by
+                t=float(self.Find_t_Value(z_local_shockwave[i]))
+                m,_,_=self.First_Derivative(t)
+                alpha=np.arctan(m)
+
+                sol = solve_ivp(stode, (0, 1000), [le_point[0], eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.5)
+                stream = np.vstack([sol.y[0], sol.y[1] * np.sin(alpha), -sol.y[1] * np.cos(alpha)]).T
             #     self.streams.append(stream+self.cone_centers[i,:])
 
 

@@ -18,18 +18,16 @@ def TM(t, x, gamma):
     return dxdt
 
 
-def cone_field(Mach, theta, beta, gamma):
-    d = np.arctan(2.0 / np.tan(beta) * (pow(Mach, 2) * pow(np.sin(beta),
-                                                           2) - 1.0) / (pow(Mach, 2) * (gamma + np.cos(2 * beta)) + 2.0))
-    Ma2 = 1.0 / np.sin(beta - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * pow(Mach, 2) * pow(
-        np.sin(beta), 2)) / (gamma * pow(Mach, 2) * pow(np.sin(beta), 2) - (gamma - 1.0) / 2.0))
-    V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * pow(Ma2, 2)) + 1.0)
-    Vr = V * np.cos(beta - d)
-    Vt = -(V * np.sin(beta - d))
+def cone_field(Mach, theta_rad, beta_rad, gamma):
+    d = np.arctan(2.0 / np.tan(beta_rad) * (Mach**2 * np.sin(beta_rad)**2 - 1.0) / (Mach**2 * (gamma + np.cos(2 * beta_rad)) + 2.0))
+    Ma2 = 1.0 / np.sin(beta_rad - d) * np.sqrt((1.0 + (gamma - 1.0) / 2.0 * Mach**2 * np.sin(beta_rad)**2) / (gamma * Mach**2 * np.sin(beta_rad)**2 - (gamma - 1.0) / 2.0))
+    V = 1.0 / np.sqrt(2.0 / ((gamma - 1.0) * Ma2**2) + 1.0)
+    Vr = V * np.cos(beta_rad - d)
+    Vt = -(V * np.sin(beta_rad - d))
 
     xt = np.array([Vr, Vt])
     
-    sol = solve_ivp(TM, (beta, theta), xt, args=(gamma,))
+    sol = solve_ivp(TM, (beta_rad, theta_rad), xt, args=(gamma,))
     Vrf = UnivariateSpline(sol.t[::-1], sol.y[0, ::-1], k=min(3, sol.t.size-1))
     Vtf = UnivariateSpline(sol.t[::-1], sol.y[1, ::-1], k=min(3, sol.t.size-1))
     return [Vrf, Vtf]

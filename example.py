@@ -74,3 +74,10 @@ plt.gca().set_aspect('equal')
 # z_ls = np.array([line[:, 2] for line in streams])
 # ax.plot_surface(x_ls, y_ls, z_ls,color='red')
 plt.show()
+
+#%%
+from waverider_generator.conical_flow import shock_angle
+import numpy as np
+
+shock_angle(5,9.23*np.pi/180,1.4)*180/np.pi
+# %%
