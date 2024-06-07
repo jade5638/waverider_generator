@@ -322,7 +322,6 @@ class waverider():
                     cone_centers[i,1]
                 ) 
                 # calculate the angle to rotate the streamlines by
-                print(z_local_shockwave[i,0])
                 m,_,_=self.Get_First_Derivative(z_local_shockwave[i,0])
                 # t=float(self.Find_t_Value(z_local_shockwave[i,0]))
 
