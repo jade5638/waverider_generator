@@ -350,9 +350,9 @@ class waverider():
     def Compute_Upper_Surface(self):
         
         for i in range(0,self.n_planes):
-            self.upper_surface_x[i+1,:]=np.linspace(self.leading_edge[i,0],self.length,self.n_streamwise)
-            self.upper_surface_y[i+1,:]=np.linspace(self.leading_edge[i,1],self.Local_to_Global(self.local_intersections_us[i,1]),self.n_streamwise)
-            self.upper_surface_z[i+1,:]=np.linspace(self.leading_edge[i,2],self.local_intersections_us[i,0],self.n_streamwise)
+            self.upper_surface_x[i+1,:]=np.linspace(self.leading_edge[i+1,0],self.length,self.n_streamwise)
+            self.upper_surface_y[i+1,:]=np.linspace(self.leading_edge[i+1,1],self.Local_to_Global(self.local_intersections_us[i,1]),self.n_streamwise)
+            self.upper_surface_z[i+1,:]=np.linspace(self.leading_edge[i+1,2],self.local_intersections_us[i,0],self.n_streamwise)
         
     def Compute_Leading_Edge_And_Cone_Centers(self):
 
