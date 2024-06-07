@@ -11,7 +11,7 @@ M_inf=5
 beta=15
 height=1.34
 width=3
-dp=[0.13,0.90,0.64,0.49]
+dp=[0.11,0.63,0,0.46]
 n_planes=20
 n_streamwise=10
 waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise)
@@ -25,6 +25,10 @@ print(ls_streams[i])
 print("\n")
 print(le[i,:])
 # print(x[i])
+#%%
+find_t_value=waverider.Find_t_Value
+shockwave=waverider.Interpolate_Shockwave(0.14285714285714285)
+find_t_value(0.14285714285714285)
 #%%
 
 inters=waverider.local_intersections_us

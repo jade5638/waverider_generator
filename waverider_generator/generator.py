@@ -289,7 +289,7 @@ class waverider():
 
         for i,le_point in enumerate(leading_edge):
             # flat region
-            if le_point[0]<=self.X1*self.width or self.X2==0:
+            if z_local_shockwave[i,0]<=self.X1*self.width or self.X2==0:
 
                 # trigonometry with deflection angle
                 bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
@@ -308,7 +308,7 @@ class waverider():
             # curved region
             else:
 
-                # need calculate R-height of osculating plane
+                # need calculate R minus height of osculating plane
                 eta_le=Euclidean_Distance(
                     local_intersections_us[i,0],
                     self.Local_to_Global(local_intersections_us[i,1]),
@@ -322,6 +322,7 @@ class waverider():
                     cone_centers[i,1]
                 ) 
                 # calculate the angle to rotate the streamlines by
+                print(z_local_shockwave[i,0])
                 m,_,_=self.Get_First_Derivative(z_local_shockwave[i,0])
                 # t=float(self.Find_t_Value(z_local_shockwave[i,0]))
 
@@ -331,7 +332,7 @@ class waverider():
 
                 x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
 
-                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1)
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1,method="DOP853")
                 # sol = solve_ivp(stode, (0, 1000), [self.length-le_point[0], eta_le], events=back, args=(self.length,), max_step=1)
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
                 # stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
