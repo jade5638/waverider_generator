@@ -30,5 +30,7 @@ leading_edge=Plot_Leading_Edge(waverider=waverider)
 #%%
 '''
 PLOT CAD'''
+CAD_plot=Plot_CAD(waverider=waverider)
+CAD_plot.plot()
 
-plt.show()
+plt.plot()

@@ -84,14 +84,12 @@ def to_CAD(waverider:waverider,sides: str,format: str,export: bool):
     if sides=="left":
         if export==True:
             cq.exporters.export(left_side, f'waverider_leftside.{format.lower()}')
-        left_side_plotting=cq.exporters.toString(left_side,exportType="TGF")
-        return left_side,left_side_plotting
+        return left_side
     
     elif sides=="right":
         if export==True:
             cq.exporters.export(right_side, f'waverider_rightside.{format.lower()}')
-        right_side_plotting=cq.exporters.toString(right_side,exportType="TGF")
-        return right_side,right_side_plotting
+        return right_side
     
     elif sides=="both":
 
@@ -102,8 +100,7 @@ def to_CAD(waverider:waverider,sides: str,format: str,export: bool):
         )
         if export==True:
             cq.exporters.export(waverider_solid, f'waverider.{format.lower()}')
-        waverider_plotting=cq.exporters.toString(waverider_solid,exportType="TGF")
-        return waverider_solid,waverider_plotting
+        return waverider_solid
     
     else:
         return ValueError("sides is either 'left', 'right' or 'both'")
