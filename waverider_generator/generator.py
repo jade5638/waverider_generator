@@ -288,8 +288,12 @@ class waverider():
 
 
         for i,le_point in enumerate(leading_edge):
+            # tip
+            if i==len(leading_edge)-1:
+                stream=np.vstack((le_point,le_point))
+                self.lower_surface_streams.append(stream)
             # flat region
-            if z_local_shockwave[i,0]<=self.X1*self.width or self.X2==0:
+            elif z_local_shockwave[i,0]<=self.X1*self.width or self.X2==0:
 
                 # trigonometry with deflection angle
                 bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
@@ -301,10 +305,7 @@ class waverider():
 
                 self.lower_surface_streams.append(np.column_stack([x,y,z]))
 
-            # tip
-            elif i==len(leading_edge)-1:
-                stream=np.vstack((le_point,le_point))
-                self.lower_surface_streams.append(stream)
+
             # curved region
             else:
 
@@ -331,7 +332,7 @@ class waverider():
 
                 x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
 
-                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=1,method="DOP853")
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.1,method="DOP853")
                 # sol = solve_ivp(stode, (0, 1000), [self.length-le_point[0], eta_le], events=back, args=(self.length,), max_step=1)
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
                 # stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
