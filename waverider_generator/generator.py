@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.interpolate import interp1d
-import bezier.curve as bcurve
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
-from scipy.interpolate import UnivariateSpline
 from waverider_generator.flowfield import cone_angle,cone_field
+from typing import Union
 
 '''
 +---------------------------+
@@ -50,15 +49,39 @@ class waverider():
     
     # constructor
     # expected input for dp (design parameters) is a list [X1,X2,X3,X4]
-    # STATUS OF FUNCTION : STABLE
-    def __init__(self,M_inf,beta,height,width,dp,n_upper_surface,n_shockwave,**kwargs):
+    def __init__(self,M_inf: Union[float,int],beta: Union[float,int],height: Union[float,int],width: Union[float,int],dp:list,n_upper_surface:int,n_shockwave:int,**kwargs):
 
         #initialise class attributes below
-        self.M_inf=M_inf
-        self.beta=beta
-        self.height=height
-        self.width=width
+        if not isinstance(M_inf, (float, int)) or M_inf <= 0:
+            raise ValueError("Mach number must be a positive number")
+        else:
+            self.M_inf=float(M_inf)
+
+        if not isinstance(beta, (float, int)) or not (0 < beta < 90):
+            raise ValueError("beta must be between 0 and 90 degrees.")
+        else:
+            self.beta=float(beta)
+
+        if not isinstance(height,(float,int)) or height<=0:
+            raise ValueError("height must be a positive number")
+        else:
+            self.height=float(height)
         
+        if not isinstance(width,(float,int)) or width<=0:
+            raise ValueError("width must be a positive number")
+        else:
+            self.width=float(width)
+        
+        if not isinstance(dp,list):
+            error='dp must be a list'
+        
+        if len(dp)!=4:
+            error='dp must contain 4 elements'
+        
+        for parameter in dp:
+            if not isinstance(parameter,(float,int)):
+                raise ValueError('please enter a valid number for the design parameters list')
+            
         #ratio of specific heats
         self.gamma=1.4
 
@@ -74,6 +97,12 @@ class waverider():
         # check that condition for inverse design is respected
         if not ((self.X2/((1-self.X1)**4))<(7/64)*(self.width/self.height)**4):
             raise ValueError("Condition for inverse design not respected, check design parameters X1 and X2")
+
+        if not (self.X3>=0 and self.X3<=1):
+            raise ValueError("X3 must be between 0 and 1")
+        
+        if not (self.X4>=0 and self.X4<=1):
+            raise ValueError("X4 must be between 0 and 1")
         
         # check optional input "n_planes"
         if "n_planes" in kwargs:
@@ -246,8 +275,10 @@ class waverider():
 
         self.lower_surface_streams=[]
         
+        # populate the self.lower_surface_streams list by tracing the streamlines
         self.Streamline_Tracing()
-        
+
+    # convert the upper surface streams to the desired format
     def Streams_Format(self):
 
         for i in range(self.n_planes+2):
@@ -266,6 +297,7 @@ class waverider():
         # propagate the streamlines
         Vr, Vt = cone_field(self.M_inf,self.cone_angle*np.pi/180,self.beta*np.pi/180,self.gamma)
 
+        # ODE which propagates the streamlines
         def stode(t, x, y_max):
 
             th = np.arctan(x[1] / x[0])
@@ -282,6 +314,7 @@ class waverider():
         
         back.terminal = True
         
+        # make the following arrays of size n_planes+2
         leading_edge=self.leading_edge
         y_local_shockwave=self.y_local_shockwave
         y_local_shockwave=np.vstack((np.array([[0]]),y_local_shockwave,np.array([[self.X2*self.height]])))
@@ -295,12 +328,12 @@ class waverider():
         local_intersections_us=self.local_intersections_us
         local_intersections_us=np.vstack((np.array([[0,self.height]]),local_intersections_us,np.array([[self.width,self.X2*self.height]])))
 
-
         for i,le_point in enumerate(leading_edge):
             # tip
             if i==len(leading_edge)-1:
                 stream=np.vstack((le_point,le_point))
                 self.lower_surface_streams.append(stream)
+
             # flat region
             elif z_local_shockwave[i,0]<=self.X1*self.width or self.X2==0:
 
@@ -313,7 +346,6 @@ class waverider():
                 z=np.full((y.shape),le_point[2])
 
                 self.lower_surface_streams.append(np.column_stack([x,y,z]))
-
 
             # curved region
             else:
@@ -331,31 +363,23 @@ class waverider():
                     cone_centers[i,2],
                     cone_centers[i,1]
                 ) 
+
                 # calculate the angle to rotate the streamlines by
                 m,_,_=self.Get_First_Derivative(z_local_shockwave[i,0])
-                # t=float(self.Find_t_Value(z_local_shockwave[i,0]))
-
-                # m,_,_=self.First_Derivative(t)
-
                 alpha=np.arctan(m)
 
                 x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
 
                 sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=self.delta_streamwise*self.length)
-                # sol = solve_ivp(stode, (0, 1000), [self.length-le_point[0], eta_le], events=back, args=(self.length,), max_step=1)
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
-                # stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
 
+                # transform from cone center coordinate system to global
                 stream[:,0]=stream[:,0]+cone_centers[i,0]
                 stream[:,1]=stream[:,1]+cone_centers[i,1]
                 stream[:,2]=stream[:,2]+cone_centers[i,2]
 
-
+                # append
                 self.lower_surface_streams.append(stream)
-
-
-            
-
 
     def Compute_Upper_Surface(self):
         
@@ -404,9 +428,6 @@ class waverider():
                                                                                 self.Local_to_Global(self.y_local_shockwave[i,0]),
                                                                                 z,
                                                                                 self.Local_to_Global(self.local_intersections_us[i,1]))
-                
-
-
     
     # find all intersections with the upper surface
     def Find_Intersections_With_Upper_Surface(self):
@@ -422,6 +443,36 @@ class waverider():
                 intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_local_shockwave[i,:]))
                 self.local_intersections_us[i,:]=intersection
 
+    # create an interp1d object for the shockwave curve 
+    def Create_Interpolated_Shockwave(self,n):
+        
+        t_values=np.linspace(0,1,n)
+        points=np.zeros((n,2))
+
+        for i,t in enumerate(t_values):
+            points[i,:]=self.Bezier_Shockwave(t)
+
+        self.Interpolate_Shockwave=interp1d(points[:,0],points[:,1],kind='linear')
+
+    # creates an interp1d object for the upper surface, used to find intersection easily
+    # with root_scalar
+    def Create_Interpolated_Upper_Surface(self,n):
+
+        # values of t for the bezier curve
+        t_values=np.linspace(0,1,n)
+
+        points=np.zeros((n,2))
+
+        # get points along the bezier curve representing the upper surface
+        for i, t in enumerate(t_values):
+            points[i, :] = self.Bezier_Upper_Surface(t)
+
+        # store interp1d objected as an attribute
+        self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
+
+    """
+    AUXILIARY FUNCTIONS    
+    """    
     # function which determines intersection of an osculating plane with the upper surface
     # curve
     # inputs:
@@ -461,45 +512,12 @@ class waverider():
     # interpolation
     def Get_Shockwave_Curve(self):
 
-        
-
         for i,z in enumerate(self.z_local_shockwave):
             if z<=self.width*self.X1:
                 self.y_local_shockwave[i,0]=0
             else:
                 self.y_local_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
-
-    # create an interp1d object for the shockwave curve 
-    def Create_Interpolated_Shockwave(self,n):
-        
-        t_values=np.linspace(0,1,n)
-        points=np.zeros((n,2))
-
-        for i,t in enumerate(t_values):
-            points[i,:]=self.Bezier_Shockwave(t)
-
-        
-        self.Interpolate_Shockwave=interp1d(points[:,0],points[:,1],kind='linear')
-
-    # creates an interp1d object for the upper surface, used to find intersection easily
-    # with root_scalar
-    def Create_Interpolated_Upper_Surface(self,n):
-
-        # values of t for the bezier curve
-        t_values=np.linspace(0,1,n)
-
-        points=np.zeros((n,2))
-
-        # get points along the bezier curve representing the upper surface
-        for i, t in enumerate(t_values):
-            points[i, :] = self.Bezier_Upper_Surface(t)
-
-        # store interp1d objected as an attribute
-        self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
-
-    """
-    AUXILIARY FUNCTIONS    
-    """    
+    
     # bezier curve defining the shockwave
     # returns np.array([z,y])
     def Bezier_Shockwave(self,t):
@@ -544,7 +562,7 @@ class waverider():
 
         self.theta=np.arctan(tanTheta)*180/np.pi
     
-    # finds the intersection with the local freestream plane by finding the point where y=y+target
+    # finds the intersection with the local freestream plane by finding the point where y=y_target=y_upper_surface
     def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
 
         #  ALL COORDINATES IN GLOBAL SYSTEM
@@ -558,16 +576,18 @@ class waverider():
         x_I=x_S+k*(x_C-x_S)
         y_I=y_target
         z_I=z_S+k*(z_C-z_S)
+
         return np.array([x_I,y_I,z_I])
 
 
-    # calculate the radius of curvature for a given t
+    # calculate the radius of curvature for a given t along the bezier curve
     def Calculate_Radius_Curvature(self,t):
         
         _,dzdt,dydt=self.First_Derivative(float(t))
         dzdt2,dydt2=self.Second_Derivative(float(t))
 
         radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
+
         return radius
 
     # find the t value which corresponds to a z value

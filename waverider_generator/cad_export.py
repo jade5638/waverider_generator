@@ -3,7 +3,7 @@ import cadquery as cq
 from cadquery import exporters
 import numpy as np
 
-def to_CAD(waverider:waverider,sides: str,format: str,export: bool):
+def to_CAD(waverider:waverider,sides : str,export: bool,filename: str):
 
     # extract streams from waverider object
     us_streams=waverider.upper_surface_streams
@@ -83,12 +83,12 @@ def to_CAD(waverider:waverider,sides: str,format: str,export: bool):
 
     if sides=="left":
         if export==True:
-            cq.exporters.export(left_side, f'waverider_leftside.{format.lower()}')
+            cq.exporters.export(left_side, filename)
         return left_side
     
     elif sides=="right":
         if export==True:
-            cq.exporters.export(right_side, f'waverider_rightside.{format.lower()}')
+            cq.exporters.export(right_side, filename)
         return right_side
     
     elif sides=="both":
@@ -99,7 +99,7 @@ def to_CAD(waverider:waverider,sides: str,format: str,export: bool):
         .union(left_side)
         )
         if export==True:
-            cq.exporters.export(waverider_solid, f'waverider.{format.lower()}')
+            cq.exporters.export(waverider_solid, filename)
         return waverider_solid
     
     else:

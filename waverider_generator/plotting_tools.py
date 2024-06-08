@@ -1,13 +1,8 @@
 import matplotlib.pyplot as plt
-from matplotlib import rc
+
 import numpy as np
 from waverider_generator.generator import waverider
-from waverider_generator.cad_export import to_CAD
-import cadquery as cq
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import pyvista as pv
-import meshio
-import vtk
+
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
@@ -76,13 +71,3 @@ def Plot_Leading_Edge(waverider: waverider):
     ax.set_ylabel('x')
     ax.legend()
     return fig
-
-def Plot_CAD(waverider: waverider):
-
-
-    to_CAD(waverider=waverider,sides='both',format='step',export=True)
-    mesh = meshio.read('waverider.step')
-    pv_mesh=pv.wrap(mesh)
-
-
-    return pv_mesh
