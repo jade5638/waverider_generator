@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
 from waverider_generator.generator import waverider
+from waverider_generator.cad_export import to_CAD
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -72,3 +73,9 @@ def Plot_Leading_Edge(waverider: waverider):
     ax.legend()
     return fig
 
+def Plot_CAD(waverider: waverider):
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    CAD=to_CAD(waverider=waverider,sides='both')

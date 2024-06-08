@@ -88,7 +88,7 @@ class waverider():
         if "n_streamwise" in kwargs:
             n_streamwise = kwargs["n_streamwise"]
             if not (isinstance(n_streamwise, int) and n_streamwise >= 10):
-                raise TypeError("The number of streamwise points must be an integer and at least 10")
+                raise TypeError("The number of streamwise upper surface points must be an integer and at least 10")
             self.n_streamwise = n_streamwise
         else:
             self.n_streamwise = 10
@@ -96,6 +96,15 @@ class waverider():
         # obtain length of waverider from tip to base plane
         self.length=height/np.tan(self.beta*np.pi/180)
 
+        # check optional input "delta_streamwise"
+        if "delta_streamwise" in kwargs:
+            delta_streamwise = kwargs["delta_streamwise"]
+            if isinstance(delta_streamwise, float) and delta_streamwise<=0.2 and delta_streamwise>0:
+                self.delta_streamwise = delta_streamwise
+            else:
+                raise ValueError("delta must be a percentage between 0 and 20 percent of the waverider length")
+        else:
+            self.delta_streamwise = 0.05
         ''''
         +--------------------------------------------------+
         | define the shockwave based on the control points |
@@ -332,7 +341,7 @@ class waverider():
 
                 x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
 
-                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=0.1,method="DOP853")
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=self.delta_streamwise*self.length)
                 # sol = solve_ivp(stode, (0, 1000), [self.length-le_point[0], eta_le], events=back, args=(self.length,), max_step=1)
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
                 # stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
