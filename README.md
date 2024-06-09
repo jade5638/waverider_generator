@@ -54,7 +54,7 @@ waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='wave
 waverider_cad
 ```
 
-The `to_CAD` function is detailed below
+The `to_CAD` function is detailed below:
 
 |Input|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
@@ -66,6 +66,38 @@ The `to_CAD` function is detailed below
 |Output|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
 `waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, therefore avoiding the step of exporting and importing into a seperate CAD software each time.|
+
+## Plotting tools
+
+The package also allows the user to plot basic figures to analyse the geometry generated before a CAD export. This is done by importing `Plot_Base_Plane` and `Plot_Leading_Edge` from `waverider_generator.plotting_tools`. An example, also included as an example file, is shown below:
+
+```python
+#%%
+from waverider_generator.generator import waverider as wr
+from waverider_generator.plotting_tools import Plot_Base_Plane,Plot_Leading_Edge
+import matplotlib.pyplot as plt
+
+M_inf=5
+beta=15
+height=1.34
+width=3
+dp=[0.11,0.63,0,0.46]
+n_planes=20
+n_streamwise=10
+delta_streamwise=0.1
+waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise,delta_streamise=delta_streamwise)
+#%%
+'''
+PLOT BASE PLANE
+'''
+base_plane=Plot_Base_Plane(waverider=waverider)
+#%%
+'''
+PLOT LEADING EDGE
+'''
+leading_edge=Plot_Leading_Edge(waverider=waverider)
+plt.show()
+```
 
 -----------
 # References
