@@ -8,7 +8,7 @@ setup(
     name="waverider_generator",
     version=VERSION,
     author="Jade Nassif",
-    author_email="<jade.nassif2002@gmail.com>",
+    author_email="jade.nassif2002@gmail.com",
     description=DESCRIPTION,
     long_description_content_type="text/markdown",
     url='https://github.com/jade5638/waverider_generator',
