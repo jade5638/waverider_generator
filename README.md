@@ -1,9 +1,9 @@
 # Waverider Generator
 
-Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1]
+Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1].
 
 ------
-References:
+# References:
 
 [1] Jiwon Son, Chankyu Son, and Kwanjung Yee. 
 'A Novel Direct Optimization Framework for Hypersonic Waverider Inverse Design Methods'.
