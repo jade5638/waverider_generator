@@ -6,34 +6,14 @@ from waverider_generator.flowfield import cone_angle,cone_field
 from typing import Union
 
 '''
-+---------------------------+
-| Created by Jade Nassif    |
-|                           |
-| jade.nassif2002@gmail.com |
-+---------------------------+
++-----------------------------------+
+| Created by Jade Nassif            |
+| Github : jade5638                 |
+| Email : jade.nassif2002@gmail.com |
++-----------------------------------+
 '''
-
 '''
-The purpose of this code is to generate waverider geometries based on the osculating
-cone inverse design method. The user inputs the following:
-- Freestream Mach number 'M_inf'
-- Shock angle 'beta'
-- Height of the waverider at the base plane 'height', note this height is measured from
-  the shockwave and not the lower surface
-- Width of the waverider at the base plane 'width'
-- Design parameters 'X1', 'X2', 'X3', 'X4'
-- Number of osculating planes 'n_planes', the symmetry plane is not included
-- Number of discrete points desired in the streamwise direction 'n_streamwise'
-
-The parametrisation is based on the work by Son et. al [1]
-
-[1] Jiwon Son, Chankyu Son, and Kwanjung Yee. 
-'A Novel Direct Optimization Framework for Hypersonic Waverider Inverse Design Methods'.
-In: Aerospace 9.7 (June 2022), p. 348. issn: 2226-4310. doi: 10.3390/aerospace9070348.
-
-The output is a CAD geometry of the waverider defined by surfaces.
-
-The code structure is based on the class "waverider" 
+Documentation on the inputs is provided in the README file
 
 Note that the following convention is used in this code:
 x --> streamwise direction
@@ -48,17 +28,20 @@ y_bar=y-height, z_bar=z and x=length
 class waverider():
     
     # constructor
-    # expected input for dp (design parameters) is a list [X1,X2,X3,X4]
     def __init__(self,M_inf: Union[float,int],beta: Union[float,int],height: Union[float,int],width: Union[float,int],dp:list,n_upper_surface:int,n_shockwave:int,**kwargs):
 
-        #initialise class attributes below
+        ''''
+        +-------------------+
+        | initialise inputs |
+        +-------------------+
+        '''
         if not isinstance(M_inf, (float, int)) or M_inf <= 0:
             raise ValueError("Mach number must be a positive number")
         else:
             self.M_inf=float(M_inf)
 
         if not isinstance(beta, (float, int)) or not (0 < beta < 90):
-            raise ValueError("beta must be between 0 and 90 degrees.")
+            raise ValueError("beta must be a float or integer between 0 and 90 degrees.")
         else:
             self.beta=float(beta)
 
@@ -81,20 +64,8 @@ class waverider():
         for parameter in dp:
             if not isinstance(parameter,(float,int)):
                 raise ValueError('please enter a valid number for the design parameters list')
-            
-        if not isinstance(n_upper_surface,int) or n_upper_surface<10:
-            raise ValueError('number of points on the upper surface for interpolation must be an integer greater than or equal to10')
-        
-        if not isinstance(n_shockwave,int) or n_shockwave<10:
-            raise ValueError('number of points on the shockwave for interpolation must be an integer greater than or equal t 10')
-            
-        #ratio of specific heats
-        self.gamma=1.4
-
-        #computes self.theta, the deflection angle corresponding to a shock angle in oblique shock relations
-        self.Compute_Deflection_Angle()
-
-        # extract the design parameters
+                # extract the design parameters
+                
         self.X1=dp[0]
         self.X2=dp[1]
         self.X3=dp[2]
@@ -110,6 +81,12 @@ class waverider():
         if not (self.X4>=0 and self.X4<=1):
             raise ValueError("X4 must be between 0 and 1")
         
+        if not isinstance(n_upper_surface,int) or n_upper_surface<10:
+            raise ValueError('number of points on the upper surface for interpolation must be an integer greater than or equal to 10')
+        
+        if not isinstance(n_shockwave,int) or n_shockwave<10:
+            raise ValueError('number of points on the shockwave for interpolation must be an integer greater than or equal to 10')
+                
         # check optional input "n_planes"
         if "n_planes" in kwargs:
             n_planes = kwargs["n_planes"]
@@ -128,18 +105,26 @@ class waverider():
         else:
             self.n_streamwise = 10
 
-        # obtain length of waverider from tip to base plane
-        self.length=height/np.tan(self.beta*np.pi/180)
-
         # check optional input "delta_streamwise"
         if "delta_streamwise" in kwargs:
             delta_streamwise = kwargs["delta_streamwise"]
-            if isinstance(delta_streamwise, float) and delta_streamwise<=0.2 and delta_streamwise>0:
+            if isinstance(delta_streamwise, float) and (delta_streamwise<=0.2 and delta_streamwise>0):
                 self.delta_streamwise = delta_streamwise
             else:
                 raise ValueError("delta must be a percentage between 0 and 20 percent of the waverider length")
         else:
             self.delta_streamwise = 0.05
+
+
+        #ratio of specific heats
+        self.gamma=1.4
+
+        #computes self.theta, the deflection angle corresponding to a shock angle in oblique shock relations
+        self.Compute_Deflection_Angle()
+
+        # obtain length of waverider from tip to base plane
+        self.length=height/np.tan(self.beta*np.pi/180)
+
         ''''
         +--------------------------------------------------+
         | define the shockwave based on the control points |
