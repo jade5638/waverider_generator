@@ -98,12 +98,9 @@ PLOT LEADING EDGE
 leading_edge=Plot_Leading_Edge(waverider=waverider)
 plt.show()
 ```
-<div style="text-align: center;">
-  <img src="base_plane.svg" alt="Base Plane" />
-</div>
-<div style="text-align: center;">
-  <img src="leading_edge.svg" alt="Leading Edge" />
-</div>
+| ![Base Plane](base_plane.svg) | ![LE](leading_edge.svg) |
+|:---------------------------:|:---------------------------:|
+| Base plane plot| Leading edge plot           |
 -----------
 # References
 
