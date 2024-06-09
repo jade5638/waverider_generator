@@ -12,8 +12,12 @@ The method makes use of the oscultating cone inverse design method and four desi
 ## Optional Inputs
 - Number of osculating planes used in the generation of the geometry `n_planes`. Note that this doesn't include the symmetry plane and the tip. A minimum number of planes is set at 10 to preserve quality and this is the default value.
 - Number of points in the streamwise direction for the generation of the upper surface as well as the flat part of the shockwave on the lower surface `n_streamwise`. A minimum is set at 10 to preserve quality and this is the default value.
-- Maximum step to be used in the tracing of the streamlines for the lower surface `delta_streamwise`. Note this is entered as a percentage of the length of the waverider and a maximum is set at 20% to preserve quality. The default value is 5%. 
-------
+- Maximum step to be used in the tracing of the streamlines for the lower surface `delta_streamwise`. Note this is entered as a percentage of the length of the waverider and a maximum is set at 20% to preserve quality. The default value is 5%.
+
+## Summary of inputs
+|Input|Type|Conditions|
+|:-------------:|:--------------:|:--------------:|
+-----------
 # References
 
 [1] Jiwon Son, Chankyu Son, and Kwanjung Yee. 
