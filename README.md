@@ -101,6 +101,9 @@ plt.show()
 | ![Base Plane](base_plane.svg) | ![LE](leading_edge.svg) |
 |:---------------------------:|:---------------------------:|
 | Base plane plot| Leading edge plot           |
+
+# License
+
 -----------
 # References
 
