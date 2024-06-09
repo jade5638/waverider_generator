@@ -17,6 +17,8 @@ The method makes use of the oscultating cone inverse design method and four desi
 ## Summary of inputs
 |Input|Type|Conditions|
 |:-------------:|:--------------:|:--------------:|
+|`M_inf`|`float` or `int`|`M_inf>0`|
+
 -----------
 # References
 
