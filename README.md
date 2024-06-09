@@ -14,8 +14,6 @@ The method makes use of the oscultating cone inverse design method and four desi
 - [Summary of Inputs](#summary-of-inputs)
 - [Usage and Functionality](#usage-and-functionality)
   - [CAD Export](#cad-export)
-    - [Inputs](#inputs)
-    - [Outputs](#outputs)
   - [Plotting Tools](#plotting-tools)
 - [Dependencies](#dependencies)
 - [License](#license)
