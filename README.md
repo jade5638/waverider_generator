@@ -101,6 +101,9 @@ plt.show()
 <div style="text-align: center;">
   <img src="base_plane.svg" alt="Base Plane" />
 </div>
+<div style="text-align: center;">
+  <img src="leading_edge.svg" alt="Leading Edge" />
+</div>
 -----------
 # References
 
