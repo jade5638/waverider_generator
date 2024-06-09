@@ -74,7 +74,7 @@ The `to_CAD` function is detailed below:
 `waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, therefore avoiding the step of exporting and importing into a seperate CAD software each time.|
 
 <p align="center">
-  <img src="cad_preview_example.png" alt="Jupyter Notebook CAD preview example" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/main/cad_preview_example.png?raw=true" alt="Jupyter Notebook CAD preview example" width="500"/>
 </p>
 <p align="center">Jupyter Notebook CAD preview example</p>
 
@@ -110,8 +110,8 @@ leading_edge=Plot_Leading_Edge(waverider=waverider)
 plt.show()
 ```
 <p align="center">
-  <img src="base_plane.svg" alt="Base Plane" width="600"/>
-  <img src="leading_edge.svg" alt="LE" width="200"/>
+  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/base_plane.svg" alt="Base Plane" width="600"/>
+  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="200"/>
 </p>
 <p align="center">
   Base plane plot &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Leading edge plot
