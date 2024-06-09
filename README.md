@@ -85,6 +85,11 @@ The `to_CAD` function is detailed below:
 |:-------------:|:--------------:|:--------------:|:--------------:|
 `waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, therefore avoiding the step of exporting and importing into a seperate CAD software each time.|
 
+<p align="center">
+  <img src="cad_preview_example.png" alt="Jupyter Notebook CAD preview example" width="500"/>
+</p>
+<p align="center">Jupyter Notebook CAD preview example</p>
+
 ## Plotting tools
 
 The package also allows the user to plot basic figures to analyse the geometry generated before a CAD export. This is done by importing `Plot_Base_Plane` and `Plot_Leading_Edge` from `waverider_generator.plotting_tools`. An example, also included as an example file, is shown below:
