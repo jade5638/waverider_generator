@@ -42,6 +42,30 @@ n_streamwise=10
 delta_streamwise=0.1
 waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise,delta_streamise=delta_streamwise)
 ```
+## CAD Export
+To export the geometry into a file CAD, the user can import the `to_CAD` function from `waverider_generator.cad_export`. An example is shown below: <br>
+
+```python
+#%%
+# assuming a waverider instance has been created with the code above
+from waverider_generator.cad_export import to_CAD
+
+waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step')
+waverider_cad
+```
+
+The `to_CAD` function is detailed below
+
+|Input|Type|Conditions|Description|
+|:-------------:|:--------------:|:--------------:|:--------------:|
+| `waverider` | `waverider` | NA|`waverider` instance|
+| `sides`| `str` | `left`, `right` or `both` <br> | Side(s) of the waverider to generate in the CAD|
+|`export`| `bool` |`True` or `False`| Setting this to `True` exports the CAD to the current directory, `False` does not|
+|`filename`| `str`| The extension must be one which `cadquery` can generate a CAD file in| Name of the CAD file to be created|
+
+|Output|Type|Conditions|Description|
+|:-------------:|:--------------:|:--------------:|:--------------:|
+`waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, thereby avoiding the step of exporting and importing into a seperate CAD software each time.|
 
 -----------
 # References
