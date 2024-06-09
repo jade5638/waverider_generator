@@ -3,7 +3,14 @@ import cadquery as cq
 from cadquery import exporters
 import numpy as np
 
-def to_CAD(waverider:waverider,sides : str,export: bool,filename: str):
+def to_CAD(waverider:waverider,sides : str,export: bool,filename: str,**kwargs):
+
+    if "scale" in kwargs:
+        scale=kwargs["scale"]
+        if not (isinstance(scale, (int,float)) and scale >0):
+            raise ValueError("scale must be a float or int greater than 0")
+    else:
+        scale=1000 # to get meters
 
     # extract streams from waverider object
     us_streams=waverider.upper_surface_streams
@@ -78,7 +85,7 @@ def to_CAD(waverider:waverider,sides : str,export: bool,filename: str):
 
     # create solid
     # by convention, +ve z is left so this produces the left side
-    left_side = cq.Solid.makeSolid(cq.Shell.makeShell([upper_surface.objects[0], lower_surface.objects[0], back,sym]))
+    left_side= cq.Solid.makeSolid(cq.Shell.makeShell([upper_surface.objects[0], lower_surface.objects[0], back,sym])).scale(scale)
     right_side= left_side.mirror(mirrorPlane='XY')
 
     if sides=="left":
