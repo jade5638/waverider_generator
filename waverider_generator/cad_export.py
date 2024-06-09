@@ -53,7 +53,7 @@ def to_CAD(waverider:waverider,sides : str,export: bool,filename: str):
     # create upper surface
     upper_surface= cq.Workplane("XY").interpPlate(edge_wire_te_upper_surface, us_points, 0)
 
-    # # create lower surface
+    # create lower surface
     lower_surface= cq.Workplane("XY").interpPlate(edge_wire_te_lower_surface, ls_points, 0)
     
     # add back as a plane
