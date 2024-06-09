@@ -17,7 +17,9 @@ The method makes use of the oscultating cone inverse design method and four desi
 ## Summary of inputs
 |Input|Type|Conditions|
 |:-------------:|:--------------:|:--------------:|
+|`X1`, `X2`, `X3` and `X4`|`list`|$0\leq X1,X2,X3,X4 \leq 1$|
 |`M_inf`|`float`, `int`|`M_inf>0`|
+
 
 -----------
 # References
