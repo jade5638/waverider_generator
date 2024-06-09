@@ -4,6 +4,9 @@ VERSION = '1.0.0'
 DESCRIPTION = 'Hypersonic Waverider Generator'
 LONG_DESCRIPTION = 'Package which allows a user to generate and export parametric waverider geometries'
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    LONG_DESCRIPTION = fh.read()
+
 setup(
     name="waverider_generator",
     version=VERSION,
