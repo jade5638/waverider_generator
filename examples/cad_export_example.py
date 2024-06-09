@@ -17,4 +17,4 @@ waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surfa
 # export cad
 waverider_cad=to_CAD(waverider=waverider,sides='left',export=False,filename='waverider.step')
 # visualise in jupyter notebook
-waverider_cad.Volume()
+waverider_cad
