@@ -56,7 +56,7 @@ To export the geometry into a file CAD, the user can import the `to_CAD` functio
 # assuming a waverider instance has been created with the code above
 from waverider_generator.cad_export import to_CAD
 
-waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step')
+waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step',scale=1000)
 waverider_cad
 ```
 
