@@ -82,6 +82,12 @@ class waverider():
             if not isinstance(parameter,(float,int)):
                 raise ValueError('please enter a valid number for the design parameters list')
             
+        if not isinstance(n_upper_surface,int) or n_upper_surface<10:
+            raise ValueError('number of points on the upper surface for interpolation must be an integer greater than or equal to10')
+        
+        if not isinstance(n_shockwave,int) or n_shockwave<10:
+            raise ValueError('number of points on the shockwave for interpolation must be an integer greater than or equal t 10')
+            
         #ratio of specific heats
         self.gamma=1.4
 

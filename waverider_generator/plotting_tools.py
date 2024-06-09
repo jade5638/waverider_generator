@@ -66,7 +66,7 @@ def Plot_Leading_Edge(waverider: waverider):
     ax.plot([le[-1,2],base_point[1]],[le[-1,0],base_point[0]],'--r',label='Base Plane')
     ax.set_aspect('equal')
     ax.invert_yaxis()
-    ax.set_title("Leading Edge Shape (Top View)")
+    ax.set_title(f"Leading Edge Shape [X1,X2,X3,X4]=[{waverider.X1},{waverider.X2},{waverider.X3},{waverider.X4}] (Top View)")
     ax.set_xlabel('z')
     ax.set_ylabel('x')
     ax.legend()
