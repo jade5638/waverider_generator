@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 from waverider_generator.generator import waverider
-
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 

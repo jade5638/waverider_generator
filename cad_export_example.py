@@ -1,7 +1,6 @@
 #%%
 from waverider_generator.generator import waverider as wr
 from waverider_generator.cad_export import to_CAD
-
 M_inf=5
 beta=15
 height=1.34
