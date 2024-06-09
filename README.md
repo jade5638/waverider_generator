@@ -8,6 +8,7 @@
   - [Plotting Tools](#plotting-tools)
 - [Dependencies](#dependencies)
 - [License](#license)
+- [Citing](#citing)
 - [References](#references)
 # Introduction
 
