@@ -162,7 +162,7 @@ SOFTWARE.
 
 # Citing
 
-Please use the included bib file to reference this work. 
+Please use the reference.bib file included to reference this work. 
 
 -----------
 # References
