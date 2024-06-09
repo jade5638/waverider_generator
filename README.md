@@ -65,7 +65,7 @@ The `to_CAD` function is detailed below:
 |Input|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
 | `waverider` | `waverider` | NA|`waverider` instance|
-| `sides`| `str` | `left`, `right` or `both` <br> | Side(s) of the waverider to generate in the CAD|
+| `sides`| `str` | `"left"`, `"right"` or `"both"` <br> | Side(s) of the waverider to generate in the CAD|
 |`export`| `bool` |`True` or `False`| Setting this to `True` exports the CAD to the current directory, `False` does not|
 |`filename`| `str`| The extension must be one which `cadquery` can generate a CAD file in| Name of the CAD file to be created|
 
