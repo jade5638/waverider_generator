@@ -68,6 +68,7 @@ The `to_CAD` function is detailed below:
 | `sides`| `str` | `"left"`, `"right"` or `"both"` <br> | Side(s) of the waverider to generate in the CAD|
 |`export`| `bool` |`True` or `False`| Setting this to `True` exports the CAD to the current directory, `False` does not|
 |`filename`| `str`| The extension must be one which `cadquery` can generate a CAD file in| Name of the CAD file to be created|
+|`scale` (optional)|`float`,`int`| `scale>0`| Scale factor by which the final geometry is scaled. By default, cadquery exports geometries in mm so the default value for `scale` is 1000 to obtain dimensions in meters. Setting this to 1 keeps the dimensions in mm. It is recommended to keep the default value of 1000 and work in meters from the start.
 
 |Output|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
