@@ -3,7 +3,7 @@
 Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1].
 The method makes use of the oscultating cone inverse design method and four design parameters `X1`, `X2`, `X3` and `X4`.
 
-| <img src="waverider_example.png" alt="Waverider example" width="300"/> |
+| <img src="waverider_example.png" alt="Waverider example" width="500"/> |
 |:---------------------------:|
 | Example of generated waverider |
 
