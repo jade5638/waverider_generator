@@ -65,7 +65,7 @@ The `to_CAD` function is detailed below
 
 |Output|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
-`waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, thereby avoiding the step of exporting and importing into a seperate CAD software each time.|
+`waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, therefore avoiding the step of exporting and importing into a seperate CAD software each time.|
 
 -----------
 # References
