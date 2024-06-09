@@ -3,7 +3,7 @@
 Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1].
 The method makes use of the oscultating cone inverse design method and four design parameters `X1`, `X2`, `X3` and `X4`.
 ## Required Inputs
-- Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list of four elements where the parameters are organised in the order listed here. Refer to the examples.
+- Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
 - Freestream Mach number `M_inf`.
 - Shock angle in degrees `beta`.
 - Height of the waverider at the base plane `height`.
