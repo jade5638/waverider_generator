@@ -8,7 +8,6 @@ The method makes use of the oscultating cone inverse design method and four desi
 - Shock angle in degrees `beta`.
 - Height of the waverider at the base plane `height`.
 - Width of the waverider `width`. Note that this refers to half of the total width of the waverider due to the symmetry.
-- Number of osculating planes used in the generation of the geometry `n_planes`. Note that this doesn't include the symmetry plane and the tip. A minimum number of planes is set at 10 to preserve quality.
 ## Optional Inputs
 - Number of osculating planes used in the generation of the geometry `n_planes`. Note that this doesn't include the symmetry plane and the tip. A minimum number of planes is set at 10 to preserve quality and this is the default value.
 - Number of points in the streamwise direction for the generation of the upper surface as well as the flat part of the shockwave on the lower surface `n_streamwise`. A minimum is set at 10 to preserve quality and this is the default value.
@@ -19,6 +18,12 @@ The method makes use of the oscultating cone inverse design method and four desi
 |:-------------:|:--------------:|:--------------:|
 | `X1`, `X2`, `X3` and `X4` | `list` | $0\leq X1,X2,X3,X4 \leq 1$ <br> $\frac{X2}{\left(1-X1\right)^4}\leq\ \frac{7}{64}\left(\frac{width}{height}\right)^4$<br>(see [1] for more information on this design condition) |
 | `M_inf` | `float`, `int` | `M_inf>0` |
+|`beta`| `float`, `int`| `0<beta<90`|
+|`height`| `float`, `int`| `height>0`|
+|`width`| `float`, `int`| `width>0`|
+|`n_planes`|`int`|`n_planes>=10`|
+|`n_streamise`|`int`|`n_streamwise>=10`|
+|`delta_streamise`|`float`|`0<delta_streamwise<=0.2`|
 
 
 
