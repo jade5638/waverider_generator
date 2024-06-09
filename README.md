@@ -98,7 +98,7 @@ PLOT LEADING EDGE
 leading_edge=Plot_Leading_Edge(waverider=waverider)
 plt.show()
 ```
-
+![Alt text](leading_edge.svg)
 -----------
 # References
 
