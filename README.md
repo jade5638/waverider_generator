@@ -28,9 +28,8 @@ The method makes use of the oscultating cone inverse design method and four desi
 # Usage and functionality
 
 A user can create a `waverider` instance by importing the `waverider` class from `waverider_generator.generator`. Everything takes place inside the class constructor so the user only needs to initialise the instance to create the geometry. An example is shown below: <br>
-
-`from waverider_generator.generator import waverider as wr` <br>
 ```python
+`from waverider_generator.generator import waverider as wr`
 M_inf=5
 beta=15
 height=1.34
@@ -40,8 +39,7 @@ n_planes=20
 n_streamwise=10
 delta_streamwise=0.1
 waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise,delta_streamise=delta_streamwise)
-
-
+```
 
 -----------
 # References
