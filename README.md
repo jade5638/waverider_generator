@@ -24,9 +24,9 @@ The method makes use of the oscultating cone inverse design method and four desi
 |`n_planes`|`int`|`n_planes>=10`|
 |`n_streamise`|`int`|`n_streamwise>=10`|
 |`delta_streamise`|`float`|`0<delta_streamwise<=0.2`|
+---------
 
-
-
+#Usage
 
 -----------
 # References
