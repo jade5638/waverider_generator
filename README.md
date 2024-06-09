@@ -112,6 +112,13 @@ plt.show()
   Base plane plot &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Leading edge plot
 </p>
 
+# Dependencies
+The package requires the following libraries to be installed:
+- numpy
+- cadquery
+- scipy
+- matplotlib
+
 # License
 MIT License
 
