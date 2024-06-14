@@ -20,7 +20,7 @@ with the origin at the tip of the waverider.
 <p align="center">
   <img src="https://github.com/jade5638/waverider_generator/blob/main/waverider_axes.png?raw=true" alt="Coordinate System" width="500"/>
 </p>
-<p align="center">Coordinate Systemr</p>
+<p align="center">Coordinate System</p>
 
 
 ## Required Inputs
