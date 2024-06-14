@@ -14,7 +14,9 @@ The coordinate system is defined such that:
 - $x$ is the streamwise direction
 - $y$ is the transverse direction
 - $z$ is the spanwise direction
+
 with the origin at the tip of the waverider.
+
 
 
 ## Required Inputs
