@@ -43,7 +43,7 @@ $$
 $$
 
 Where:
-- $\theta$ is the flow angle
+- $\theta$ is the cone angle
 - $\phi$ is the azimuthal angle
 
 ## Required Inputs
