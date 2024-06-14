@@ -28,7 +28,8 @@ In the flat region of the shockwave, the lower surface is determined via oblique
 
 $\tan(\theta) = \frac{2 \cot\left(\beta\right) \left(M_{\infty}^2 \sin^2\left(\beta \right) - 1\right)}{M_{\infty}^2 (\gamma + \cos\left(2 \beta\right)) + 2}$
 
-In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane and the streamlines traced determine the lower surface.
+In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane. 
+The Taylor-Maccoll relation, which represents conical flow, is solved the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface. 
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
