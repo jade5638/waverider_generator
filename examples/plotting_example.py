@@ -18,10 +18,10 @@ waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surfa
 '''
 PLOT BASE PLANE
 '''
-base_plane=Plot_Base_Plane(waverider=waverider)
+base_plane=Plot_Base_Plane(waverider=waverider,latex=True)
 #%%
 '''
 PLOT LEADING EDGE
 '''
-leading_edge=Plot_Leading_Edge(waverider=waverider)
+leading_edge=Plot_Leading_Edge(waverider=waverider,latex=True)
 plt.show()
