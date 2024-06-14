@@ -24,7 +24,9 @@ with the origin at the tip of the waverider.
 
 ## Flow Field
 
-In the flat region of the shockwave, the lower surface is determined via oblique shock relations which relate the deflection angle to the shock angle in an oblique shock.
+In the flat region of the shockwave, the lower surface is determined via oblique shock relations which relate the deflection angle to the shock angle in an oblique shock:
+
+$\tan(\theta) = \frac{2 \cot\left(\beta\right) \left(M_{\infty}^2 \sin^2\left(\beta \right) - 1\right)}{M_{\infty}^2 (\gamma + \cos\left(2 \beta\right)) + 2}$
 
 In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane and the streamlines traced determine the lower surface.
 
