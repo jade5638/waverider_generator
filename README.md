@@ -53,7 +53,7 @@ The Taylor-Maccoll ODE, which describes conical flow, is solved and the resultin
 ## Summary of inputs
 |Input|Type|Conditions|
 |:-------------:|:--------------:|:--------------:|
-| `X1`, `X2`, `X3` and `X4` | `list` | $0\leq X1,X2,X3,X4 \leq 1$ <br> $\frac{X2}{\left(1-X1\right)^4}\leq\ \frac{7}{64}\left(\frac{width}{height}\right)^4$<br>(see [1] for more information on this design condition) |
+| `X1`, `X2`, `X3` and `X4` | `list` | $0\leq X2,X3,X4 \leq 1$ <br> $0 \leq X1 < 1 $ <br> $\frac{X2}{\left(1-X1\right)^4}\leq\ \frac{7}{64}\left(\frac{width}{height}\right)^4$<br>(see [1] for more information on this design condition) |
 | `M_inf` | `float`, `int` | `M_inf>0` |
 |`beta`| `float`, `int`| `0<beta<90`|
 |`height`| `float`, `int`| `height>0`|
