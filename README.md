@@ -25,7 +25,7 @@ with the origin at the tip of the waverider.
 ## Flow Field
 
 ### Oblique Shock
-In the flat region of the shockwave, the lower surface is determined via the $\theta$-$\beta$-$M_{\infty}$ equation, which relates the deflection angle $\theta$ to the shock angle $\beta$ in an oblique shock. 
+In the flat region of the shockwave, the lower surface is determined via the $\theta$- $\beta$ - $M_{\infty}$ equation, which relates the deflection angle $\theta$ to the shock angle $\beta$ in an oblique shock. 
 
 $$
 \tan(\theta) = \frac{2 \cot\left(\beta\right) \left(M_{\infty}^2 \sin^2\left(\beta \right) - 1\right)}{M_{\infty}^2 (\gamma + \cos\left(2 \beta\right)) + 2}
