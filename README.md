@@ -31,7 +31,7 @@ $$
 \tan(\theta) = \frac{2 \cot\left(\beta\right) \left(M_{\infty}^2 \sin^2\left(\beta \right) - 1\right)}{M_{\infty}^2 (\gamma + \cos\left(2 \beta\right)) + 2}
 $$
 
-Where $\gamma=1.4$ is the ratio of specific heats for air
+Where $\gamma=1.4$ is the ratio of specific heats for air.
 
 ### Osculating Cone Theory
 
