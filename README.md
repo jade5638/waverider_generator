@@ -9,7 +9,7 @@ Please consult the paper referenced for any further clarification on the geometr
 </p>
 <p align="center">Example of generated waverider</p>
 
-## Coordinate System and Flow Physics
+## Coordinate System
 The coordinate system is defined such that:
 - $x$ is the streamwise direction
 - $y$ is the transverse direction
@@ -22,6 +22,11 @@ with the origin at the tip of the waverider.
 </p>
 <p align="center">Coordinate System</p>
 
+## Flow Field
+
+In the flat region of the shockwave, the lower surface is determined via oblique shock relations which relate the deflection angle to the shock angle in an oblique shock.
+
+In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is local applied at each osculating plane and the streamlines traced determine the lower surface.
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
