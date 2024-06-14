@@ -36,15 +36,7 @@ Where $\gamma=1.4$ is the ratio of specific heats for air
 ### Osculating Cone Theory
 
 In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane. 
-The Taylor-Maccoll relation, which represents conical flow, is solved the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface. 
-
-$$
-\frac{d^2 \theta}{d \phi^2} + \frac{d\theta}{d\phi} \left(\frac{2}{\tan(\phi)} - \frac{\gamma + 1}{\sin(\theta)}\right) + \gamma (\gamma - 1) \frac{\sin(\theta)}{2} = 0
-$$
-
-Where:
-- $\theta$ is the cone angle
-- $\phi$ is the azimuthal angle
+The Taylor-Maccoll ODE, which describes conical flow, is solved and the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface. 
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
