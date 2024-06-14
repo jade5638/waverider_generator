@@ -1,12 +1,23 @@
 # Introduction
 
 Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1].
-The method makes use of the oscultating cone inverse design method and four design parameters `X1`, `X2`, `X3` and `X4`.
+The method makes use of the oscultating cone inverse design method and four design parameters `X1`, `X2`, `X3` and `X4`. 
+Please consult the paper referenced for any further clarification on the geometrical meaning of these inputs. 
 
 <p align="center">
   <img src="https://github.com/jade5638/waverider_generator/blob/main/waverider_example.png?raw=true" alt="Waverider example" width="500"/>
 </p>
 <p align="center">Example of generated waverider</p>
+
+## Coordinate System and Flow Physics
+The coordinate system is defined such that:
+- $x$ is the streamwise direction
+- $y$ is the transverse direction
+- $z$ is the spanwise direction
+
+with the origin at the tip of the waverider.
+
+
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
@@ -56,7 +67,7 @@ To export the geometry into a file CAD, the user can import the `to_CAD` functio
 # assuming a waverider instance has been created with the code above
 from waverider_generator.cad_export import to_CAD
 
-waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step')
+waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step',scale=1000)
 waverider_cad
 ```
 
@@ -68,6 +79,7 @@ The `to_CAD` function is detailed below:
 | `sides`| `str` | `"left"`, `"right"` or `"both"` <br> | Side(s) of the waverider to generate in the CAD|
 |`export`| `bool` |`True` or `False`| Setting this to `True` exports the CAD to the current directory, `False` does not|
 |`filename`| `str`| The extension must be one which `cadquery` can generate a CAD file in| Name of the CAD file to be created|
+|`scale` (optional)|`float`,`int`| `scale>0`| Scale factor by which the final geometry is scaled. By default, cadquery exports geometries in mm so the default value for `scale` is 1000 to obtain dimensions in meters. Setting this to 1 keeps the dimensions in mm. It is recommended to keep the default value of 1000 and work in meters from the start.
 
 |Output|Type|Conditions|Description|
 |:-------------:|:--------------:|:--------------:|:--------------:|
