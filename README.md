@@ -156,7 +156,9 @@ The package requires the following libraries to be installed:
 - cadquery
 - scipy
 - matplotlib
-- (optional) a LaTex distribution such as MiKTex (refer to previous section) 
+
+Optional:
+- a LaTex distribution such as MiKTex (refer to previous section) 
 
 # License
 MIT License
