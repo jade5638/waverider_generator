@@ -132,12 +132,12 @@ waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surfa
 '''
 PLOT BASE PLANE
 '''
-base_plane=Plot_Base_Plane(waverider=waverider)
+base_plane=Plot_Base_Plane(waverider=waverider,latex=True)
 #%%
 '''
 PLOT LEADING EDGE
 '''
-leading_edge=Plot_Leading_Edge(waverider=waverider)
+leading_edge=Plot_Leading_Edge(waverider=waverider=True)
 plt.show()
 ```
 <p align="center">
@@ -148,12 +148,15 @@ plt.show()
   Base plane plot &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Leading edge plot
 </p>
 
+**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work
+
 # Dependencies
 The package requires the following libraries to be installed:
 - numpy
 - cadquery
 - scipy
 - matplotlib
+- (optional) a LaTex distribution such as MiKTex (refer to previous section) 
 
 # License
 MIT License
