@@ -26,7 +26,9 @@ with the origin at the tip of the waverider.
 
 In the flat region of the shockwave, the lower surface is determined via oblique shock relations which relate the deflection angle $\theta$ to the shock angle $\beta$ in an oblique shock:
 
+<div align="center"> 
 $\tan(\theta) = \frac{2 \cot\left(\beta\right) \left(M_{\infty}^2 \sin^2\left(\beta \right) - 1\right)}{M_{\infty}^2 (\gamma + \cos\left(2 \beta\right)) + 2}$
+</div>
 
 In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane. 
 The Taylor-Maccoll relation, which represents conical flow, is solved the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface. 
