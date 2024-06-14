@@ -1,12 +1,17 @@
 import matplotlib.pyplot as plt
-
 import numpy as np
 from waverider_generator.generator import waverider
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
 
-def Plot_Base_Plane(waverider: waverider):
+
+def Plot_Base_Plane(waverider: waverider,latex: bool):
     
+    if latex==True:
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+    elif latex==False:
+        pass
+    else: 
+        raise ValueError("input 'latex' must be a boolean")
 
     fig, ax=plt.subplots()
 
@@ -53,8 +58,15 @@ def Plot_Base_Plane(waverider: waverider):
     # return the figure object
     return fig
 
-def Plot_Leading_Edge(waverider: waverider):
+def Plot_Leading_Edge(waverider: waverider,latex: bool):
 
+    if latex==True:
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+    elif latex==False:
+        pass
+    else: 
+        raise ValueError("input 'latex' must be a boolean")
     fig, ax=plt.subplots()
 
     le=waverider.leading_edge
