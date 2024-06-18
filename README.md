@@ -137,7 +137,7 @@ base_plane=Plot_Base_Plane(waverider=waverider,latex=True)
 '''
 PLOT LEADING EDGE
 '''
-leading_edge=Plot_Leading_Edge(waverider=waverider=True)
+leading_edge=Plot_Leading_Edge(waverider=waverider=True,latex=True)
 plt.show()
 ```
 <p align="center">
