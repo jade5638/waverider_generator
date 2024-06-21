@@ -36,7 +36,8 @@ Where $\gamma=1.4$ is the ratio of specific heats for air and $M_{\infty}$ is th
 ### Osculating Cone Theory
 
 In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane. 
-The Taylor-Maccoll ODE, which describes conical flow, is solved and the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface. 
+The Taylor-Maccoll ODE, which describes conical flow, is solved and the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface.
+See [2] for more information on the Osculating Cone Theory.
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
@@ -194,3 +195,6 @@ Please use the reference.bib file included to reference this work.
 [1] Jiwon Son, Chankyu Son, and Kwanjung Yee. 
 'A Novel Direct Optimization Framework for Hypersonic Waverider Inverse Design Methods'.
 In: Aerospace 9.7 (June 2022), p. 348. issn: 2226-4310. doi: 10.3390/aerospace9070348.
+
+[2] Helmut Sobieczky, F Dougherty, and Kevin Jones.
+“Hypersonic Waverider Design from Given Shock Waves”. In: May 1990
