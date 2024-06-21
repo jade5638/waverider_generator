@@ -112,7 +112,9 @@ The `to_CAD` function is detailed below:
 
 ## Plotting tools
 
-The package also allows the user to plot basic figures to analyse the geometry generated before a CAD export. This is done by importing `Plot_Base_Plane` and `Plot_Leading_Edge` from `waverider_generator.plotting_tools`. An example, also included as an example file, is shown below:
+The package also allows the user to plot basic figures to analyse the geometry generated before a CAD export. This is done by importing `Plot_Base_Plane` and `Plot_Leading_Edge` from `waverider_generator.plotting_tools`. An example, also included as an example file, is shown below
+
+**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work.
 
 ```python
 #%%
@@ -149,8 +151,6 @@ plt.show()
   <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="300"/>
 </p>
 <p align="center">Leading Edge Plot</p>
-
-**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work.
 
 # Dependencies
 The package requires the following libraries to be installed:
