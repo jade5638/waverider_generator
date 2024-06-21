@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '1.1.2'
+VERSION = '1.1.3'
 DESCRIPTION = 'Hypersonic Waverider Generator'
 LONG_DESCRIPTION = 'Package which allows a user to generate and export parametric waverider geometries'
 
@@ -18,5 +18,5 @@ setup(
     long_description=LONG_DESCRIPTION,
     packages=find_packages(),
     install_requires=['numpy','cadquery','scipy','matplotlib'],
-    keywords=['python', 'waverider', 'CAD', 'hypersonic','aerospace-engineering']
+    keywords=['python', 'waverider', 'CAD', 'hypersonic','aerospace-engineering','osculating-cone]
 )
