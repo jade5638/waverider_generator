@@ -142,13 +142,14 @@ plt.show()
 ```
 <p align="center">
   <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/base_plane.svg" alt="Base Plane" width="600"/>
+</p>
+<p align="center">Base Plane</p>
+<p align="center">
   <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="200"/>
 </p>
-<p align="center">
-  Base plane plot &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Leading edge plot
-</p>
+<p align="center">Leading Edge Plot</p>
 
-**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work
+**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work.
 
 # Dependencies
 The package requires the following libraries to be installed:
