@@ -18,5 +18,5 @@ setup(
     long_description=LONG_DESCRIPTION,
     packages=find_packages(),
     install_requires=['numpy','cadquery','scipy','matplotlib'],
-    keywords=['python', 'waverider', 'CAD', 'hypersonic','aerospace-engineering','osculating-cone]
+    keywords=['python', 'waverider', 'CAD', 'hypersonic','aerospace-engineering','osculating-cone']
 )
