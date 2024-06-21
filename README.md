@@ -141,11 +141,11 @@ leading_edge=Plot_Leading_Edge(waverider=waverider=True,latex=True)
 plt.show()
 ```
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/base_plane.svg" alt="Base Plane" width="600"/>
+  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/base_plane.svg" alt="Base Plane" width="400"/>
 </p>
 <p align="center">Base Plane</p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="200"/>
+  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="400"/>
 </p>
 <p align="center">Leading Edge Plot</p>
 
