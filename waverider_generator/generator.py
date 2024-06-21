@@ -35,6 +35,7 @@ class waverider():
         | initialise inputs |
         +-------------------+
         '''
+
         if not isinstance(M_inf, (float, int)) or M_inf <= 0:
             raise ValueError("Mach number must be a positive number")
         else:
@@ -55,25 +56,32 @@ class waverider():
         else:
             self.width=float(width)
         
+        error=""
         if not isinstance(dp,list):
-            error='dp must be a list'
+            error=error+'dp must be a list\n'
         
         if len(dp)!=4:
-            error='dp must contain 4 elements'
+            error=error+'dp must contain 4 elements'
+
+        if error!="":
+            raise ValueError(error)
         
         for parameter in dp:
             if not isinstance(parameter,(float,int)):
-                raise ValueError('please enter a valid number for the design parameters list')
-                # extract the design parameters
-                
+                raise ValueError('please enter a valid float or int for the design parameters')
+            
+        # extract the design parameters                
         self.X1=dp[0]
         self.X2=dp[1]
         self.X3=dp[2]
         self.X4=dp[3]
 
         # check that condition for inverse design is respected
-        if not ((self.X2/((1-self.X1)**4))<(7/64)*(self.width/self.height)**4):
-            raise ValueError("Condition for inverse design not respected, check design parameters X1 and X2")
+        if (self.X1<1 and self.X1>=0) and (self.X2<=1 and self.X2>=0):
+            if not ((self.X2/((1-self.X1)**4))<(7/64)*(self.width/self.height)**4):
+                raise ValueError("Condition for inverse design not respected, check value of design parameters X1 and X2")
+        else:
+            raise ValueError("X1 and/or X2 are not in the required range")
 
         if not (self.X3>=0 and self.X3<=1):
             raise ValueError("X3 must be between 0 and 1")
@@ -111,7 +119,7 @@ class waverider():
             if isinstance(delta_streamwise, float) and (delta_streamwise<=0.2 and delta_streamwise>0):
                 self.delta_streamwise = delta_streamwise
             else:
-                raise ValueError("delta must be a percentage between 0 and 20 percent of the waverider length")
+                raise ValueError("delta_streamwise must be a percentage between 0 and 20 percent of the waverider length")
         else:
             self.delta_streamwise = 0.05
 
@@ -211,10 +219,10 @@ class waverider():
         self.leading_edge=np.zeros((self.n_planes+2,3))
 
         # tip is already at 0,0,0
-        # set the last point (tip)
+        # set the last point (tip at base plane)
         self.leading_edge[-1,:]=np.array([self.length,self.Local_to_Global(self.X2*self.height),self.width])
 
-        # initialise an object for the cone centers
+        # initialise an object for the cone centers, note in the flat these are not "cones" but still better to have a single array
         self.cone_centers=np.zeros((self.n_planes,3))
 
         # osculate through the planes and populate self.cone_centers and self.leading_edge
@@ -257,9 +265,7 @@ class waverider():
         +---------------------------+
         '''
         
-        # next step is to trace the streamlines, start by computing the flow deflection angle in flat regions
-        # store self.theta in degrees
-        self.Compute_Deflection_Angle()
+        # next step is to trace the streamlines
 
         # compute the cone angle in degrees
         self.cone_angle=cone_angle(self.M_inf,self.beta,self.gamma)
