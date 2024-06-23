@@ -43,7 +43,7 @@ See [2] for more information on the Osculating Cone Theory.
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
 - Freestream Mach number `M_inf`.
 - Shock angle in degrees `beta`.
-- Height of the waverider at the base plane `height`. Note that the length of the waverider is determined as $height/\tan(\theta)$ so a user may choose to determine the height required for a desired length.
+- Height of the waverider at the base plane `height`. Note that the length of the waverider is determined as $height/\tan(\beta)$ so a user may choose to determine the height required for a desired length.
 - Width of the waverider `width`. Note that this refers to half of the total width of the waverider due to the symmetry.
 - Number of points to be used for interpolating the shockwave and the upper surface curve (`n_shockwave` and `n_upper_surface` respectively). Both are integers greater than 10 to preserve quality.
 ## Optional Inputs
