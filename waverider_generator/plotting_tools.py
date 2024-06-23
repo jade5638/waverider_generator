@@ -70,7 +70,7 @@ def Plot_Leading_Edge(waverider: waverider,latex: bool):
     fig, ax=plt.subplots()
 
     le=waverider.leading_edge
-    base_point=[5,0]
+    base_point=[waverider.length,0]
     ax.plot(le[:,2],le[:,0],'b-',label='Leading Edge')
 
     ax.plot([le[0,2],base_point[1]],[le[0,0],base_point[0]],'--k',label='Symmetry Plane')
