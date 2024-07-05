@@ -169,8 +169,8 @@ class waverider():
 
         #assign y_bar coordinates of all points on upper surface
         self.us_cp[0,1]=self.height
-        self.us_cp[1,1]=self.height-(1-self.X2)*self.X3
-        self.us_cp[2,1]=self.height-(1-self.X2)*self.X4
+        self.us_cp[1,1]=self.height-(1-self.X2)*self.X3*self.height
+        self.us_cp[2,1]=self.height-(1-self.X2)*self.X4*self.height
 
         #assign last point using the P4 computed for the shockwave
         self.us_cp[3,:]=self.s_P4
