@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '2.0.0'
+VERSION = '2.0.1'
 DESCRIPTION = 'Hypersonic Waverider Generator'
 LONG_DESCRIPTION = 'Package which allows a user to generate and export parametric waverider geometries'
 
