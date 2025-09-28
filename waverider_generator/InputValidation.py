@@ -60,31 +60,67 @@ class FlowParameters :
         object.__setattr__(self, 'beta'     , beta)
 
 
+@dataclass(frozen=True, slots=True)
+class OptionalParameters:
+
+    n_USC_pts               : int   = 1000  # Number of Upper Surface Curve points used for Interpolation
+    n_SC_pts                : int   = 1000  # Number of Shockwave Curve points used for Interpolation
+    n_planes                : int   = 50    # Number of Osculating Planes
+    n_US_streamlines_pts    : int   = 50    # Number of points discretising the Upper Surface in the streamwise direction per Osculating Plane
+    dx_LS_streamlines_pts   : float = 0.1   # Maximum step to be used in the tracing of the streamlines for the lower surface. Entered as a percentage of the total waverider length 
+
+
+    def __post_init__(self) :
+
+            # USC Points
+            if int(self.n_USC_pts) != self.n_USC_pts :
+                raise ValueError("Optional Parameter n_USC_pts must be an integer value")
+            
+            if self.n_USC_pts < 10 :
+                    raise ValueError("Optional Parameter n_USC_pts must be greater or equal to 10")
+            
+            object.__setattr__(self, 'n_USC_pts', int(self.n_USC_pts))
+
+            # SC Points
+            if int(self.n_SC_pts) != self.n_SC_pts :
+                raise ValueError("Optional Parameter n_SC_pts must be an integer value")
+            
+            if self.n_USC_pts < 10 :
+                raise ValueError("Optional Parameter n_SC_pts must be greater or equal to 10")
+            
+            object.__setattr__(self, 'n_SC_pts', int(self.n_SC_pts))
+
+            # Osculating Planes
+            if int(self.n_planes) != self.n_planes :
+                raise ValueError("Optional Parameter n_planes must be an integer value")
+            
+            if self.n_planes < 10 :
+                raise ValueError("Optional Parameter n_planes must be greater or equal to 10")
+            
+            object.__setattr__(self, 'n_planes', int(self.n_planes))
+
+            # US Streamline Points
+            if int(self.n_US_streamlines_pts) != self.n_US_streamlines_pts :
+                raise ValueError("Optional Parameter n_US_streamlines_pts must be an integer value")
+            
+            if self.n_US_streamlines_pts < 10 :
+                raise ValueError("Optional Parameter n_US_streamlines_pts must be greater or equal to 10")
+            
+            object.__setattr__(self, 'n_US_streamlines_pts', int(self.n_US_streamlines_pts))
+
+            # Step for streamline tracing
+            if not (0 < self.dx_LS_streamlines_pts <= 0.2) :
+                raise ValueError("Optional Parameter dx_LS_streamlines_pts must be a percentage value less than or equal to 20%")
+            
+            object.__setattr__(self, 'dx_LS_streamlines_pts', float(self.dx_LS_streamlines_pts))
+
+            
 
 
 
 
+                
 
-
-
-def isInRange(value : Union[float, int], lb : Union[float, int], ub : Union[float, int], 
-              bInclusiveLB = True, 
-              bInclusiveUB = True) -> bool:
-
-    # lb check
-    if bInclusiveLB:
-        lower_ok = value >= lb
-    else:
-        lower_ok = value > lb
-
-    # ub check
-    if bInclusiveUB:
-        upper_ok = value <= ub
-    else:
-        upper_ok = value < ub
-
-    return lower_ok and upper_ok
-    
 
 
         
