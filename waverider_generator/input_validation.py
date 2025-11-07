@@ -4,6 +4,36 @@ from typing import List, Literal, Union
 
 @dataclass(frozen=True, slots=True) 
 class GeometricParameters :
+    """
+    Data class for the Geometric Parameters of the Waverider. \n
+    For reference, see [GitHub README](https://github.com/jade5638/waverider_generator).\n
+    These parameters are best visualised in the Base Plane.
+
+    Properties
+    ----------
+    X1 :
+        Parameter determining the length of the flat part of the Shockwave Curve.
+
+    X2 :
+        Parameter determining the height of the lateral tip of the Waverider
+        relative to the height of the Shockwave Curve.
+
+    X3 :
+        Parameter determining the height of the first control point of the Upper
+        Surface Curve.
+
+    X4 :
+        Parameter determining the height of the second control point of the Upper
+        Surface Curve.
+
+    w  :
+        Waverider half width, in meters.
+
+    h  :
+        Desired Shockwave height, in meters.
+    ----------
+
+    """
 
     X1      : float
     X2      : float
@@ -44,31 +74,77 @@ class GeometricParameters :
 
 @dataclass(frozen=True, slots=True)
 class FlowParameters :
+    """
+    Data class for the Flow Parameters of the Waverider.\n
+    For reference, see [GitHub README](https://github.com/jade5638/waverider_generator).\n
 
-    M_design    : float # Design Mach Number
-    beta        : float # Shock Angle
+    Properties 
+    ----------
+    M_design :
+        Waverider Design Mach Number.
 
-    def __init__(self, M_design : float, beta : float) :
+    beta :
+        Target Shock Angle at the Symmetry Plane, in degrees.
+
+    gamma :
+        Ratio of Specific Heats (default 1.4 for air).
+    ----------
+
+    """
+
+    M_design    : float
+    beta        : float
+    gamma       : float 
+
+    def __init__(self, M_design : float, beta : float, gamma : float = 1.4) :
         
         M_design    = float(M_design)
         beta        = float(beta)
+        gamma       = float(gamma)
 
         if M_design <= 0        : raise ValueError('Design Mach Number must be a positive number')
         if not (0 < beta < 90)  : raise ValueError('Shock Angle must be between 0 and 90 degrees (exclusive)')
+        if not gamma > 1        : raise ValueError('Ratio of Specific Heats must be greater than 1')
 
         object.__setattr__(self, 'M_design' , M_design)
         object.__setattr__(self, 'beta'     , beta)
+        object.__setattr__(self, 'gamma'    , gamma)
 
 
 @dataclass(frozen=True, slots=True)
 class OptionalParameters:
+    """
+    Data class for the Optional Parameters of the Waverider.\n
+    For reference, see [GitHub README](https://github.com/jade5638/waverider_generator).\n
+    
+    Properties 
+    ----------
+    n_USC_pts :
+        Number of Upper Surface Curve points used for Interpolation.
 
-    n_USC_pts               : int   = 1000  # Number of Upper Surface Curve points used for Interpolation
-    n_SC_pts                : int   = 1000  # Number of Shockwave Curve points used for Interpolation
-    n_planes                : int   = 50    # Number of Osculating Planes
-    n_US_streamlines_pts    : int   = 50    # Number of points discretising the Upper Surface in the streamwise direction per Osculating Plane
-    dx_LS_streamlines_pts   : float = 0.1   # Maximum step to be used in the tracing of the streamlines for the lower surface. Entered as a percentage of the total waverider length 
+    n_SC_pts :
+        Number of Shockwave Curve points used for Interpolation.
+    
+    n_planes : 
+        Number of Osculating Planes.
 
+    n_US_streamlines_pts :
+        Number of points discretising the Upper Surface in the streamwise
+        direction per Osculating Plane.  
+
+    dx_LS_streamlines_pts : 
+        Maximum step to be used in the tracing of the streamlines for the lower surface. 
+        Entered as a percentage of the total waverider length
+
+    ----------
+
+    """
+
+    n_USC_pts               : int   = 1000  
+    n_SC_pts                : int   = 1000  
+    n_planes                : int   = 50    
+    n_US_streamlines_pts    : int   = 50    
+    dx_LS_streamlines_pts   : float = 0.1   
 
     def __post_init__(self) :
 
