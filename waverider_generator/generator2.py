@@ -4,24 +4,34 @@ from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from waverider_generator.flowfield import cone_angle,cone_field
 from typing import Union, Optional
-from waverider_generator.InputValidation import *
+from waverider_generator.input_validation import *
 from abc import ABC, abstractmethod
-
+from waverider_generator.curves import *
 
 class IWaverider(ABC) :
 
-    __slots__ = ("_geo_params", "_flow_params", "_opts")
+    __slots__ = ("_geo_params", "_flow_params", "_opts",
+                 "_theta", "_length")
     
     @property
     @abstractmethod
     def geo_params(self) -> GeometricParameters : ...
+
     @property
     @abstractmethod
     def flow_params(self) -> FlowParameters :...
+
     @property
     @abstractmethod
     def opts(self) -> OptionalParameters : ...
 
+    @property
+    @abstractmethod
+    def theta(self) -> float : ...
+
+    @property
+    @abstractmethod
+    def length(self) -> float : ...
 
 class WaveriderCore(IWaverider) : 
 
@@ -42,24 +52,83 @@ class WaveriderCore(IWaverider) :
         self._flow_params    = flow_params
         self._opts           = opts
 
+        # extract parameters
+        beta     = self._flow_params.beta
+        M_design = self._flow_params.M_design
+        gamma    = self._flow_params.gamma
+        h        = self._geo_params.h
+
+        self._theta          = calculate_deflection_angle(beta, M_design, gamma)
+        self._length         = h/np.tan(np.radians(beta))
+         
+
     @property
-    def geo_params(self):
+    def geo_params(self) -> GeometricParameters:
         return self._geo_params
 
     @property
-    def flow_params(self):
+    def flow_params(self) -> FlowParameters:
         return self._flow_params
 
     @property
     def opts(self) -> OptionalParameters:
         return self._opts
-
+    
+    @property
+    def theta(self) -> float:
+        return self._theta
+    
+    @property
+    def length(self) -> float:
+        return self._length
+    
 
 class Waverider(WaveriderCore) :
 
     __slots__ = ()
     
-    pass
+    def Build(self) :
+
+        X1 = self._geo_params.X1
+        X2 = self._geo_params.X2
+        X3 = self._geo_params.X3
+        X4 = self._geo_params.X4
+        w = self._geo_params.w
+        h = self._geo_params.h
+        
+        # SC Control Points in base plane coordinates
+        SC_ControlPoints = Curve(x=self.length * np.ones(5),
+                                y=np.concatenate((np.zeros(4), np.array([h * X2]))),
+                                z=np.linspace(X1 * w, w, 5))
+        
+        # USC Control Points in base plane coordinates
+        USC_ControlPoints = Curve(x=self.length * np.ones(3),
+                                  y=np.array([h, h - (1 - X2) * X3 * h, h - (1 - X2) * X4 * h]),
+                                  z=np.linspace(0, w, 4)[:3])
+        
+        USC_ControlPoints.add_point(SC_ControlPoints[-1])
+
+        # return USC_ControlPoints
+        
+
+
+
+
+def calculate_deflection_angle(betaDeg : float, M_inf : float, gamma : float = 1.4) -> float :
+
+    betaRad = np.radians(betaDeg)
+
+    tanTheta = 2*cot(betaRad)*(M_inf**2*np.sin(betaRad)**2-1)/(M_inf**2*(gamma+np.cos(2*betaRad))+2)
+
+    thetaDeg = np.degrees(np.arctan(tanTheta))
+
+    return thetaDeg
+
+# cotangent
+def cot(angle : float) -> float:
+    return 1/np.tan(angle)
+
+
 
 
 
