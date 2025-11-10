@@ -30,25 +30,30 @@ class Point :
             return NotImplemented
         return Point(self.x - otherPoint.x, self.y - otherPoint.y, self.z - otherPoint.z)
     
+    def __mul__(self, scalar):
+        if not (np.isreal(scalar)) :
+            return NotImplemented
+        scalar = float(scalar)
+        return Point(self.x * scalar, self.y * scalar, self.z * scalar)
+    
+    def __rmul__(self, scalar) :
+        return self.__mul__(scalar)
+    
+    def __truediv__(self, scalar):
+        if not (np.isreal(scalar)) :
+            return NotImplemented
+        scalar = float(scalar)
+        return Point(self.x / scalar, self.y / scalar, self.z / scalar)
+
+    def __rtruediv__(self, scalar):
+        if not (np.isreal(scalar)) :
+            return NotImplemented
+        scalar = float(scalar)
+        return Point(scalar / self.x, scalar / self.y, scalar / self.z)
+    
     def distanceTo(self, otherPoint) -> float:
         dx, dy, dz = self.x - otherPoint.x, self.y - otherPoint.y, self.z - otherPoint.z
         return np.sqrt(dx*dx + dy*dy + dz*dz)
-    
-import numpy as np
-from typing import Optional, Iterable
-from dataclasses import dataclass
-
-@dataclass(frozen=True, slots=True)
-class Point:
-    x: float
-    y: float
-    z: float
-
-    def __init__(self, x: float, y: float, z: float):
-        object.__setattr__(self, 'x', float(x))
-        object.__setattr__(self, 'y', float(y))
-        object.__setattr__(self, 'z', float(z))
-
 
 class Curve:
     def __init__(self,
