@@ -111,40 +111,77 @@ class Waverider(WaveriderCore) :
         USC_ControlPoints.add_point(SC_ControlPoints[-1])
         USC_Bezier = BezierCurve(USC_ControlPoints)
 
-
         # z_base contains the z-coordinates to iterate through the 
         # width of the waverider in the base plane
         z_base = np.linspace(0, w, self._opts.n_planes)
         
+        # z coordinate after which the SC is defined by the Bezier curve
         z_crit = w * X1
         
-        def find_t(bezier_curve : BezierCurve, z_target : float) :
-
-            def f(t):
-                return bezier_curve.Evaluate(t).z - z_target
-            
-            intersection=root_scalar(f,bracket=[0,1])
-
-            return intersection.root
-        
+        # get the SC base of points and corresponding USC intersections
         SC_base = Curve()
+        USC_intersections = Curve()
         for i, z in enumerate(z_base) :
-            if z <= z_crit :
-                SC_base.add_coords(x = length,
-                                   y = 0,
-                                   z = z)
+            if z <= z_crit or X2 == 0 :
+
+                SC_point = Point(x = length, y = 0, z = z)
+                t_USC = find_t(USC_Bezier, z_target=z)
+                USC_point : Point = USC_Bezier.Evaluate(t_USC) # type: ignore
+
+            elif z == w :
+
+                SC_point  = SC_ControlPoints[-1]
+                USC_point = SC_ControlPoints[-1]
+
             else :
-                t = find_t(SC_Bezier, z)
-                point : Point = SC_Bezier.Evaluate(t) # type: ignore
-                SC_base.add_point(point) 
+
+                t_SC = find_t(SC_Bezier, z)
+                SC_point : Point = SC_Bezier.Evaluate(t_SC) # type: ignore
+                
+                dCdt : Point = SC_Bezier.Evaluate_FirstDerivative(t_SC) # type: ignore
+                dydz = dCdt.y / dCdt.z
+                slope = - 1 / dydz
+                
+                def f(z) :
+                    t_USC = find_t(USC_Bezier,z_target=z) 
+                    return USC_Bezier.Evaluate(t_USC).y - base_plane_line_equation(z, slope, SC_point)
+                
+                intersection=root_scalar(f,bracket=[0, w])
+                z_USC = intersection.root
+                t_USC = find_t(USC_Bezier, z_target=z_USC)
+                USC_point : Point = USC_Bezier.Evaluate(t_USC) # type: ignore
+            
+            SC_base.add_point(SC_point)
+            USC_intersections.add_point(USC_point)
+        
+        # to do : get the leading edge coordinates and cone centres
         
 
 
-        return SC_base
+        return SC_base, USC_intersections
+    
+    def _local_to_global(self, point : Point) -> Point : 
         
+        if not isinstance(point, Point) : return TypeError('point must be of type Point')
+
+        return Point(x = point.x,
+                     y = point.y - self._geo_params.h,
+                     z = point.z)
 
 
+def base_plane_line_equation(z : float, m : float, known_point : Point) -> float:
+    c = known_point.y - m * known_point.z 
+    y = m * z + c
+    return y
 
+def find_t(bezier_curve : BezierCurve, z_target : float) -> float :
+
+    def f(t):
+        return bezier_curve.Evaluate(t).z - z_target
+
+    intersection=root_scalar(f,bracket=[0,1])
+
+    return intersection.root
 
 def calculate_deflection_angle(betaDeg : float, M_inf : float, gamma : float = 1.4) -> float :
 
