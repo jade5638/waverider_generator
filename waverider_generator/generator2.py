@@ -95,11 +95,13 @@ class Waverider(WaveriderCore) :
         X4 = self._geo_params.X4
         w = self._geo_params.w
         h = self._geo_params.h
+        length = self._length
         
         # SC Control Points in base plane coordinates
         SC_ControlPoints = Curve(x=self.length * np.ones(5),
                                 y=np.concatenate((np.zeros(4), np.array([h * X2]))),
                                 z=np.linspace(X1 * w, w, 5))
+        SC_Bezier = BezierCurve(SC_ControlPoints)
         
         # USC Control Points in base plane coordinates
         USC_ControlPoints = Curve(x=self.length * np.ones(3),
@@ -107,8 +109,38 @@ class Waverider(WaveriderCore) :
                                   z=np.linspace(0, w, 4)[:3])
         
         USC_ControlPoints.add_point(SC_ControlPoints[-1])
+        USC_Bezier = BezierCurve(USC_ControlPoints)
 
-        # return USC_ControlPoints
+
+        # z_base contains the z-coordinates to iterate through the 
+        # width of the waverider in the base plane
+        z_base = np.linspace(0, w, self._opts.n_planes)
+        
+        z_crit = w * X1
+        
+        def find_t(bezier_curve : BezierCurve, z_target : float) :
+
+            def f(t):
+                return bezier_curve.Evaluate(t).z - z_target
+            
+            intersection=root_scalar(f,bracket=[0,1])
+
+            return intersection.root
+        
+        SC_base = Curve()
+        for i, z in enumerate(z_base) :
+            if z <= z_crit :
+                SC_base.add_coords(x = length,
+                                   y = 0,
+                                   z = z)
+            else :
+                t = find_t(SC_Bezier, z)
+                point : Point = SC_Bezier.Evaluate(t) # type: ignore
+                SC_base.add_point(point) 
+        
+
+
+        return SC_base
         
 
 

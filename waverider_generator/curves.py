@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 import numpy as np
 from typing import List, Literal, Union, Optional, Iterable
-
+from math import factorial as factorial
 @dataclass(frozen=True, slots=True)
 class Point : 
 
@@ -62,53 +62,55 @@ class Curve:
                  y: Optional[np.ndarray] = None,
                  z: Optional[np.ndarray] = None):
         """
-        Create a Curve either from:
-          - a sequence of Point objects, OR
-          - three NumPy arrays x, y, z of equal length.
+        create curve from:
+          - a sequence of Point objects
+          - or three np arrays x, y, z
         """
 
-        # Case 1: Explicit list of Point objects
+        # from points
         if points is not None:
             if not isinstance(points, (list, tuple, np.ndarray)):
-                raise TypeError("points must be a list, tuple, or numpy array of Point objects.")
+                raise TypeError("points must be a list, tuple, or numpy ndarray of Point objects.")
             for p in points:
                 if not isinstance(p, Point):
-                    raise TypeError(f"All elements in points must be Point objects, got {type(p)}.")
+                    raise TypeError(f"All elements in points must be Point objects.")
             self.points: list[Point] = list(points)
             return
 
-        # Case 2: NumPy coordinate vectors
+        # from x, y z vectors
         if x is not None or y is not None or z is not None:
-            # Require all three
+            # check if all three provided
             if x is None or y is None or z is None:
                 raise ValueError("If providing coordinates, x, y, and z must all be provided.")
             
-            # Require numpy arrays
+            # check if numpy vectors
             for name, arr in zip(('x', 'y', 'z'), (x, y, z)):
-                if not isinstance(arr, np.ndarray):
-                    raise TypeError(f"{name} must be a NumPy ndarray, got {type(arr)}")
+                if not isinstance(arr, (list, tuple, np.ndarray)):
+                    raise TypeError(f"{name} must be a list, tuple, or numpy ndarray.")
 
-            # Require matching shape
+            # check length
             if not (x.shape == y.shape == z.shape):
                 raise ValueError("x, y, and z arrays must have the same shape.")
 
+            # make into a list of points
             self.points: list[Point] = [Point(xi, yi, zi) for xi, yi, zi in zip(x, y, z)]
             return
 
-        # Case 3: Empty curve
+        # empty curve
         self.points: list[Point] = []
 
+
     def add_point(self, point: Point) -> None:
-        """Add a new Point to the end of the curve."""
+        '''add point from a Point object '''
         if not isinstance(point, Point):
-            raise TypeError(f"Can only add Point objects, got {type(point)}.")
+            raise TypeError(f"Can only add Point objects.")
         self.points.append(point)
 
+    
     def add_coords(self, x: float, y: float, z: float) -> None:
-        """Create and add a Point from numeric coordinates."""
+        '''add point from set of x, y, z vectors '''
         self.add_point(Point(x, y, z))
 
-    # ---- Magic methods ----
     def __len__(self):
         return len(self.points)
 
@@ -121,7 +123,6 @@ class Curve:
     def __repr__(self):
         return f"Curve({len(self.points)} points)"
 
-    # ---- Convenience accessors ----
     @property
     def x(self) -> np.ndarray:
         return np.array([p.x for p in self.points])
@@ -135,5 +136,98 @@ class Curve:
         return np.array([p.z for p in self.points])
 
 
+class BezierCurve():
+
+    def __init__(self, controlPoints : Curve) :
+        
+        if not isinstance(controlPoints, Curve) : 
+            return TypeError('Control points must be a Curve instance')
+        
+        self.controlPoints = controlPoints
+        self.nOrder = len(controlPoints) - 1
+
+    def Evaluate(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
+        
+        # handle scalar input
+        if isinstance(t, (int, float)):
+            tVec = [float(t)]
+        else:
+            tVec = list(np.sort(np.array(t)))
+
+        curve = Curve()
+        for t in tVec :
+            if not (0 <= t <= 1) : # type: ignore
+                raise ValueError('t must be between zero and one')
+            point = sum([BernsteinPolynomial(self.nOrder, i, t) * self.controlPoints[i] for i in range(self.nOrder + 1)], 
+                    Point(0, 0, 0))
+            curve.add_point(point)
+
+        if len(curve) > 1 :
+            return curve
+        else :
+            return curve[0]
+    
+    def Evaluate_FirstDerivative(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
+
+        n = self.nOrder
+
+        # handle scalar input
+        if isinstance(t, (int, float)):
+            tVec = [float(t)]
+        else:
+           tVec = list(np.sort(np.array(t)))
+
+        curve = Curve()
+        for t in tVec :
+            if not (0 <= t <= 1) : # type: ignore
+                raise ValueError('t must be between zero and one')
+            c_prime = sum([
+                BernsteinPolynomial(n - 1, i, t)
+                * n 
+                * (self.controlPoints[i + 1] - self.controlPoints[i]) for i in range(n)
+                ],
+                Point(0, 0, 0))
+            curve.add_point(c_prime)
+        
+        if len(curve) > 1 :
+            return curve
+        else :
+            return curve[0]
+    
+    def Evaluate_SecondDerivative(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
+        
+        n = self.nOrder
+        
+        # handle scalar input
+        if isinstance(t, (int, float)):
+            tVec = [float(t)]
+        else:
+           tVec = list(np.sort(np.array(t)))
+
+        curve = Curve()
+        for t in tVec :
+            if not (0 <= t <= 1) : # type: ignore
+                raise ValueError('t must be between zero and one')
+            c_prime_prime = sum([
+                BernsteinPolynomial(n - 2, i, t)
+                * n * (n - 1)
+                * (self.controlPoints[i + 2] - 2 * self.controlPoints[i + 1] + self.controlPoints[i])
+                for i in range(n - 1)
+            ],
+            Point(0, 0, 0))
+            curve.add_point(c_prime_prime)
+        
+        if len(curve) > 1 :
+            return curve
+        else :
+            return curve[0]
+    
+    
+ 
+def BernsteinPolynomial(n, i, t) -> float:
+
+    return float((factorial(n) / (factorial(i) * factorial(n - i))) * (t ** i) * ((1 - t) ** (n - i))) 
+
+    
         
         
