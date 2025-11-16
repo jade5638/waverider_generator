@@ -83,7 +83,7 @@ class FlowParameters :
     M_design :
         Waverider Design Mach Number.
 
-    beta :
+    betaDeg :
         Target Shock Angle at the Symmetry Plane, in degrees.
 
     gamma :
@@ -93,128 +93,19 @@ class FlowParameters :
     """
 
     M_design    : float
-    beta        : float
+    betaDeg     : float
     gamma       : float 
 
-    def __init__(self, M_design : float, beta : float, gamma : float = 1.4) :
+    def __init__(self, M_design : float, betaDeg : float, gamma : float = 1.4) :
         
         M_design    = float(M_design)
-        beta        = float(beta)
+        betaDeg     = float(betaDeg)
         gamma       = float(gamma)
 
         if M_design <= 0        : raise ValueError('Design Mach Number must be a positive number')
-        if not (0 < beta < 90)  : raise ValueError('Shock Angle must be between 0 and 90 degrees (exclusive)')
+        if not (0 < betaDeg < 90)  : raise ValueError('Shock Angle must be between 0 and 90 degrees (exclusive)')
         if not gamma > 1        : raise ValueError('Ratio of Specific Heats must be greater than 1')
 
         object.__setattr__(self, 'M_design' , M_design)
-        object.__setattr__(self, 'beta'     , beta)
+        object.__setattr__(self, 'betaDeg'  , betaDeg)
         object.__setattr__(self, 'gamma'    , gamma)
-
-
-@dataclass(frozen=True, slots=True)
-class OptionalParameters:
-    """
-    Data class for the Optional Parameters of the Waverider.\n
-    For reference, see [GitHub README](https://github.com/jade5638/waverider_generator).\n
-    
-    Properties 
-    ----------
-    n_USC_pts :
-        Number of Upper Surface Curve points used for Interpolation.
-
-    n_SC_pts :
-        Number of Shockwave Curve points used for Interpolation.
-    
-    n_planes : 
-        Number of Osculating Planes.
-
-    n_US_streamlines_pts :
-        Number of points discretising the Upper Surface in the streamwise
-        direction per Osculating Plane.  
-
-    dx_LS_streamlines_pts : 
-        Maximum step to be used in the tracing of the streamlines for the lower surface. 
-        Entered as a percentage of the total waverider length
-
-    ----------
-
-    """
-
-    n_USC_pts               : int   = 1000  
-    n_SC_pts                : int   = 1000  
-    n_planes                : int   = 50    
-    n_US_streamlines_pts    : int   = 50    
-    dx_LS_streamlines_pts   : float = 0.1   
-
-    def __post_init__(self) :
-
-            # USC Points
-            if int(self.n_USC_pts) != self.n_USC_pts :
-                raise ValueError("Optional Parameter n_USC_pts must be an integer value")
-            
-            if self.n_USC_pts < 10 :
-                    raise ValueError("Optional Parameter n_USC_pts must be greater or equal to 10")
-            
-            object.__setattr__(self, 'n_USC_pts', int(self.n_USC_pts))
-
-            # SC Points
-            if int(self.n_SC_pts) != self.n_SC_pts :
-                raise ValueError("Optional Parameter n_SC_pts must be an integer value")
-            
-            if self.n_USC_pts < 10 :
-                raise ValueError("Optional Parameter n_SC_pts must be greater or equal to 10")
-            
-            object.__setattr__(self, 'n_SC_pts', int(self.n_SC_pts))
-
-            # Osculating Planes
-            if int(self.n_planes) != self.n_planes :
-                raise ValueError("Optional Parameter n_planes must be an integer value")
-            
-            if self.n_planes < 10 :
-                raise ValueError("Optional Parameter n_planes must be greater or equal to 10")
-            
-            object.__setattr__(self, 'n_planes', int(self.n_planes))
-
-            # US Streamline Points
-            if int(self.n_US_streamlines_pts) != self.n_US_streamlines_pts :
-                raise ValueError("Optional Parameter n_US_streamlines_pts must be an integer value")
-            
-            if self.n_US_streamlines_pts < 10 :
-                raise ValueError("Optional Parameter n_US_streamlines_pts must be greater or equal to 10")
-            
-            object.__setattr__(self, 'n_US_streamlines_pts', int(self.n_US_streamlines_pts))
-
-            # Step for streamline tracing
-            if not (0 < self.dx_LS_streamlines_pts <= 0.2) :
-                raise ValueError("Optional Parameter dx_LS_streamlines_pts must be a percentage value less than or equal to 20%")
-            
-            object.__setattr__(self, 'dx_LS_streamlines_pts', float(self.dx_LS_streamlines_pts))
-
-            
-
-
-
-
-                
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-        

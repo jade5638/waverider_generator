@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 import numpy as np
-from typing import List, Literal, Union, Optional, Iterable
+from typing import List, Literal, Union, Optional, Iterable, overload
 from math import factorial as factorial
 @dataclass(frozen=True, slots=True)
 class Point : 
@@ -136,97 +136,140 @@ class Curve:
         return np.array([p.z for p in self.points])
 
 
-class BezierCurve():
+# --------------------------
+# Bézier Curve Class
+# --------------------------
+class BezierCurve:
 
-    def __init__(self, controlPoints : Curve) :
-        
-        if not isinstance(controlPoints, Curve) : 
-            return TypeError('Control points must be a Curve instance')
-        
+    @overload
+    def Evaluate(self, t: float) -> Point: ...
+
+    @overload
+    def Evaluate(self, t: Iterable) -> Curve: ...
+
+    @overload
+    def Evaluate_FirstDerivative(self, t: float) -> Point: ...
+
+    @overload
+    def Evaluate_FirstDerivative(self, t: Iterable) -> Curve: ...
+
+    @overload
+    def Evaluate_SecondDerivative(self, t: float) -> Point: ...
+
+    @overload
+    def Evaluate_SecondDerivative(self, t: Iterable) -> Curve: ...
+
+    def __init__(self, controlPoints):
+
+
+        if len(controlPoints) < 2:
+            raise ValueError("Bezier curve requires at least 2 control points.")
+
         self.controlPoints = controlPoints
         self.nOrder = len(controlPoints) - 1
 
-    def Evaluate(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
-        
-        # handle scalar input
-        if isinstance(t, (int, float)):
-            tVec = [float(t)]
-        else:
-            tVec = list(np.sort(np.array(t)))
+    def Evaluate(self, t: Union[float, Iterable]) -> Union[Point, Curve]:
 
+        '''
+        Evaluate Bezier curve at t
+        '''
+
+        tVec = [float(t)] if isinstance(t, (int, float)) else [float(x) for x in t]
+
+        # initialise Curve
         curve = Curve()
-        for t in tVec :
-            if not (0 <= t <= 1) : # type: ignore
-                raise ValueError('t must be between zero and one')
-            point = sum([BernsteinPolynomial(self.nOrder, i, t) * self.controlPoints[i] for i in range(self.nOrder + 1)], 
-                    Point(0, 0, 0))
-            curve.add_point(point)
-
-        if len(curve) > 1 :
-            return curve
-        else :
-            return curve[0]
-    
-    def Evaluate_FirstDerivative(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
 
         n = self.nOrder
 
-        # handle scalar input
-        if isinstance(t, (int, float)):
-            tVec = [float(t)]
-        else:
-           tVec = list(np.sort(np.array(t)))
+        for ti in tVec:
+            if not (0 <= ti <= 1):
+                raise ValueError("t must be in [0, 1].")
 
-        curve = Curve()
-        for t in tVec :
-            if not (0 <= t <= 1) : # type: ignore
-                raise ValueError('t must be between zero and one')
-            c_prime = sum([
-                BernsteinPolynomial(n - 1, i, t)
-                * n 
-                * (self.controlPoints[i + 1] - self.controlPoints[i]) for i in range(n)
-                ],
-                Point(0, 0, 0))
-            curve.add_point(c_prime)
-        
-        if len(curve) > 1 :
-            return curve
+            p = Point(0, 0, 0)
+
+            # sum
+            for i in range(n + 1):
+                p += BernsteinPolynomial(n, i, ti) * self.controlPoints[i]
+
+            # add point to curve
+            curve.add_point(p)
+
+        if len(curve) == 1 :
+            point : Point = curve[0]
+            return point 
         else :
-            return curve[0]
-    
-    def Evaluate_SecondDerivative(self, t : Union[float,Iterable]) -> Union[Curve, Point]:
+            return curve
+
+    def Evaluate_FirstDerivative(self, t: Union[float, Iterable]) -> Union[Point, Curve]:
+
+        tVec = [float(t)] if isinstance(t, (int, float)) else [float(x) for x in t]
+
+        # initialise Curve
+        curve = Curve()
         
         n = self.nOrder
-        
-        # handle scalar input
-        if isinstance(t, (int, float)):
-            tVec = [float(t)]
-        else:
-           tVec = list(np.sort(np.array(t)))
 
-        curve = Curve()
-        for t in tVec :
-            if not (0 <= t <= 1) : # type: ignore
-                raise ValueError('t must be between zero and one')
-            c_prime_prime = sum([
-                BernsteinPolynomial(n - 2, i, t)
-                * n * (n - 1)
-                * (self.controlPoints[i + 2] - 2 * self.controlPoints[i + 1] + self.controlPoints[i])
-                for i in range(n - 1)
-            ],
-            Point(0, 0, 0))
-            curve.add_point(c_prime_prime)
-        
-        if len(curve) > 1 :
-            return curve
+        for ti in tVec:
+            if not (0 <= ti <= 1):
+                raise ValueError("t must be in [0, 1].")
+
+            p = Point(0, 0, 0)
+
+            # sum
+            for i in range(n):
+                p += n * BernsteinPolynomial(n - 1, i, ti) * (self.controlPoints[i + 1] - self.controlPoints[i])
+
+            # add point to curve
+            curve.add_point(p)
+
+        if len(curve) == 1 :
+            point : Point = curve[0]
+            return point 
         else :
-            return curve[0]
-    
-    
- 
-def BernsteinPolynomial(n, i, t) -> float:
+            return curve
 
-    return float((factorial(n) / (factorial(i) * factorial(n - i))) * (t ** i) * ((1 - t) ** (n - i))) 
+    def Evaluate_SecondDerivative(self, t: Union[float, Iterable]) -> Union[Point, Curve]:
+
+        n = self.nOrder
+        if n < 2:
+            raise ValueError("Second derivative requires at least three control points (Bezier curve of order > 2).")
+
+        tVec = [float(t)] if isinstance(t, (int, float)) else [float(x) for x in t]
+
+        # initialise Curve
+        curve = Curve()
+
+        for ti in tVec:
+            if not (0 <= ti <= 1):
+                raise ValueError("t must be in [0, 1].")
+
+            p = Point(0, 0, 0)
+
+            # sum
+            for i in range(n - 1):
+                p += n*(n - 1) * BernsteinPolynomial(n - 2, i, ti) * (
+                    self.controlPoints[i + 2]
+                    - 2 * self.controlPoints[i + 1]
+                    + self.controlPoints[i]
+                )
+
+            # add point to curve
+            curve.add_point(p)
+
+        if len(curve) == 1 :
+            point : Point = curve[0]
+            return point 
+        else :
+            return curve
+    
+def BernsteinPolynomial(n: int, i: int, t: float) -> float:
+    """
+    Bernstein polynomial B_{i,n}(t).
+    """
+    if i < 0 or i > n:
+        return 0.0
+    
+    return (factorial(n) / (factorial(i) * factorial(n - i))) * (t**i) * ((1 - t)**(n - i))
 
     
         
