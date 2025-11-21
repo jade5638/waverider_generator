@@ -51,9 +51,17 @@ class Point :
         scalar = float(scalar)
         return Point(scalar / self.x, scalar / self.y, scalar / self.z)
     
+    def __eq__(self, otherPoint):
+        if not isinstance(otherPoint, Point):
+            return NotImplemented
+        return self.x == otherPoint.x and self.y == otherPoint.y and self.z == otherPoint.z
+    
     def distanceTo(self, otherPoint) -> float:
         dx, dy, dz = self.x - otherPoint.x, self.y - otherPoint.y, self.z - otherPoint.z
         return np.sqrt(dx*dx + dy*dy + dz*dz)
+    
+    def toTuple(self) -> tuple :
+        return (self.x, self.y, self.z)
 
 class Curve:
     def __init__(self,

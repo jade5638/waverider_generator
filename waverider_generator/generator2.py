@@ -3,12 +3,34 @@ from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from waverider_generator.flowfield import cone_angle,cone_field
-from typing import Union, Optional
+from typing import Union, Optional, Dict, Tuple
 from waverider_generator.input_validation import *
 from abc import ABC, abstractmethod
 from waverider_generator.curves import *
 import math
+import os
+import cadquery as cq
 
+@dataclass(frozen=True, slots=True)
+class Streams :
+
+    US_Streams : list[Curve]
+    LS_Streams : list[Curve]
+
+    def __init__(self, US_Streams : list[Curve], LS_Streams : list[Curve]) :
+
+        if not all(isinstance(stream, Curve) for stream in US_Streams):
+            raise TypeError("All streams in US_Streams must be Curve instances")
+
+        if not all(isinstance(s, Curve) for s in LS_Streams):
+            raise TypeError("All streams in US_Streams must be Curve instances")
+        
+        if not (len(US_Streams) == len(LS_Streams) and len(US_Streams) >= 3) : 
+            raise ValueError("Both US_Streams and LS_Streams must be the same length and contain at least three Curve instances")
+        
+        object.__setattr__(self, 'US_Streams', US_Streams)
+        object.__setattr__(self, 'LS_Streams', LS_Streams)
+        
 class IWaverider(ABC) :
 
     __slots__ = ("_geo_params", "_flow_params")
@@ -118,7 +140,7 @@ class Waverider(WaveriderCore) :
     def USC_ControlPoints(self) -> Curve :
         curve = Curve(
             x = self.length * np.ones(3),
-            y = np.array([self.h, self.h - (1 - self.X2) * self.X3 * self.h, self.h - (1 - self.X2) * self.X4 * self.h]) - self.h,
+            y = np.array([0, - (1 - self.X2) * self.X3 * self.h, - (1 - self.X2) * self.X4 * self.h]),
             z = np.linspace(0, self.w, 4)[:3]
             )
         
@@ -143,10 +165,10 @@ class Waverider(WaveriderCore) :
         return self.SC_ControlPoints[-1]
 
     def Build(self, 
-            z_base                  : Union[Iterable, None] = None,
+            z_base                  : Union[Iterable[float], None] = None,
             n_planes                : int   = 50,
             n_streamline_pts        : int   = 50,  
-            dx_LS_streamline        : float = 0.1) :
+            dx_LS_streamline        : float = 0.1)  -> Tuple[Streams, Dict[str, Curve]]:
         
         # n_planes input validation 
         if int(n_planes) != n_planes : raise ValueError("n_planes must be an integer")
@@ -155,126 +177,27 @@ class Waverider(WaveriderCore) :
         # n_streamline_pts input validation
         if n_streamline_pts < 10 : raise ValueError("n_streamline_pts must be >= 10")
 
-        if not (0 < dx_LS_streamline <= 0.2) : raise ValueError("dx_LS_streamlines_pts must be in (0, 0.2]")
+        if not (0 < dx_LS_streamline <= 0.2) : 
+            raise ValueError("dx_LS_streamlines_pts must be in (0, 0.2]")
         
-        if z_base is None : z_base = self.w * exp_spacing(n_planes) 
-        z_base = np.sort(np.array(z_base))
-        if not (z_base[0]  == 0)         : raise ValueError('Minimum value in z_base must be 0')
-        if not (z_base[-1] == self.w)    : raise ValueError('Maximum value in z_base must be the half-width of the waverider "w"')
+        if z_base is None : 
+            z_base = np.sort(self.w * exp_spacing(n_planes)) 
+        else :
 
+            z_base = np.sort(np.array(z_base))
+
+            if not (z_base[0]  == 0) : 
+                raise ValueError('Minimum value in z_base must be 0')
+            if not (z_base[-1] == self.w) : 
+                raise ValueError('Maximum value in z_base must be the half-width of the waverider "w"')
+            if len(z_base) != len(np.unique(z_base)) : 
+                raise ValueError('z_base must contain unique values of z in [0, w]')
+            
+            print('Using custom z_base, argument n_planes is overridden\n')
+
+        # get the Bezier curves for SC and USC
         SC_Bezier           = self.SC_Bezier
         USC_Bezier          = self.USC_Bezier
-        
-        # initialise, all Curve instances in global coordinate system
-        SC_base             = Curve()
-        USC_intersections   = Curve()
-        cone_centers        = Curve()
-        leading_edge        = Curve()
-        radii_curvature     = []
-        dy_dz_slope         = []
-
-        for z in z_base :
-
-            if not (0 <= z <= self.w): raise ValueError('z must be in [0, w]')
-
-            # case 1 : flat part of the SC
-            if z <= self.z_crit or self.X2 == 0 :
-
-                # get the SC point
-                SC_point = Point(x = self.length, y = - self.h, z = z)
-
-                # get the t_USC and get the USC point
-                t_USC = find_t(USC_Bezier, z_target=z)
-                USC_point = USC_Bezier.Evaluate(t_USC) 
-
-                # get the 'cone' center point
-                cone_point = Point(x = self.length - (USC_point.y - SC_point.y) / np.tan(self.betaRad), 
-                                   y = USC_point.y,
-                                   z = z)
-                 
-                # get the leading edge point
-                # in the flat part this is equivalent to the 'cone center' 
-                leading_edge_point = cone_point
-
-                # infinite radius of curvature for the flat part
-                radius_curvature = math.inf
-                
-                # slope undefined in flat part
-                dy_dz = math.inf
-
-            # case 2 : lateral tip of the waverider
-            elif z == self.w :
-
-                SC_point            = self.lateral_tip_point
-                USC_point           = self.lateral_tip_point
-                cone_point          = self.lateral_tip_point
-                leading_edge_point  = self.lateral_tip_point
-                radius_curvature    = calculate_radius_curvature(dC_dt= SC_Bezier.Evaluate_FirstDerivative(1), 
-                                                                 dC2_dt2=SC_Bezier.Evaluate_SecondDerivative(1))
-                
-                dSC_dt = SC_Bezier.Evaluate_FirstDerivative(1) 
-                dy_dz = dSC_dt.y / dSC_dt.z
-
-            # case 3 : curved section of the SC
-            else :
-
-                # get t_SC and get the SC point
-                t_SC = find_t(SC_Bezier, z)
-                SC_point = SC_Bezier.Evaluate(t_SC)
-                
-                # get first derivative of SC bezier curve at t_SC
-                dSC_dt = SC_Bezier.Evaluate_FirstDerivative(t_SC) 
-
-                # calculate dydz
-                dy_dz = dSC_dt.y / dSC_dt.z
-
-                # calculate slope of the line going through SC_point
-                # and intersecting with the USC
-                slope = - 1 / dy_dz
-                
-                # get the intersection with the USC
-                def f(z) :
-                    t_USC = find_t(USC_Bezier,z_target=z) 
-                    return USC_Bezier.Evaluate(t_USC).y - base_plane_line_equation(z, slope, SC_point)
-                
-                intersection=root_scalar(f,bracket=[0, self.w])
-                z_USC = intersection.root
-                t_USC = find_t(USC_Bezier, z_target=z_USC)
-                USC_point = USC_Bezier.Evaluate(t_USC) 
-
-                # calculate second derivative to get radius of curvature
-                dSC2_dt2 = SC_Bezier.Evaluate_SecondDerivative(t_SC)  
-
-                radius_curvature = calculate_radius_curvature(dSC_dt, dSC2_dt2)
-                alpha = np.arctan(dy_dz)
-                z_cone = SC_point.z - np.sin(alpha) * radius_curvature
-                y_cone = SC_point.y + np.cos(alpha) * radius_curvature
-                # distance between SC Point and cone center projection on base plane
-                d = SC_point.distanceTo(Point(x = self.length, y = y_cone, z=z_cone))
-                x_cone = self.length - d / np.tan(self.betaRad)
-
-                cone_point = Point(x = x_cone,
-                                   y = y_cone,
-                                   z = z_cone)
-                
-                leading_edge_point = calculate_LE_point(cone_point, SC_point, USC_point.y)
-
-            SC_base.add_point(SC_point)
-            USC_intersections.add_point(USC_point)
-            cone_centers.add_point(cone_point)
-            leading_edge.add_point(leading_edge_point)
-            radii_curvature.append(radius_curvature)
-            dy_dz_slope.append(dy_dz)
-
-        # calculate upper surface streams
-        US_Streams = []
-        for leading_edge_point, USC_point in zip(leading_edge, USC_intersections):
-
-            US_Streams.append(Curve(x = np.linspace(leading_edge_point.x, USC_point.x, n_streamline_pts),
-                                    y = np.full(n_streamline_pts, leading_edge_point.y),
-                                    z = np.full(n_streamline_pts, leading_edge_point.z)))
-            
-        # trace streamlines
 
         # propagate the streamlines
         Vr, Vt = cone_field(self.M_design, self.cone_angle_rad, self.betaRad, self.gamma)
@@ -295,32 +218,43 @@ class Waverider(WaveriderCore) :
             return y[0] - y_max
         
         back.terminal = True
+        
+        # initialise, all Curve instances in global coordinate system
+        SC_base             = Curve()
+        USC_intersections   = Curve()
+        cone_centers        = Curve()
+        leading_edge        = Curve()
+        LS_Streams          = []
 
-        LS_Streams = []
-        for (z,
-            cone_point, 
-            leading_edge_point,
-            USC_point, 
-            SC_point, 
-            radius_curvature,
-            dy_dz) in zip(z_base, 
-                                    cone_centers, 
-                                    leading_edge, 
-                                    USC_intersections,
-                                    SC_base,
-                                    radii_curvature, 
-                                    dy_dz_slope):
+        # iterate across z_base
+        for z in z_base :
 
             # case 1 : flat part of the SC
             if z <= self.z_crit or self.X2 == 0 :
 
-                # trigonometry with deflection angle
-                bottom_surface_y= leading_edge_point.y - np.tan(self.thetaRad) * (self.length - leading_edge_point.x)
+                # get the SC point
+                SC_point = Point(x = self.length, y = - self.h, z = z)
+
+                # get the t_USC and set the USC point
+                t_USC = find_t(USC_Bezier, z_target=z)
+                USC_point = USC_Bezier.Evaluate(t_USC) 
+
+                # get the 'cone' center point
+                cone_point = Point(x = self.length - (USC_point.y - SC_point.y) / np.tan(self.betaRad), 
+                                   y = USC_point.y,
+                                   z = z)
+                 
+                # get the leading edge point
+                # in the flat part this is equivalent to the 'cone center' 
+                leading_edge_point = cone_point
+
+                # get lower surface y
+                lower_surface_y= leading_edge_point.y - np.tan(self.thetaRad) * (self.length - leading_edge_point.x)
 
                 # store the x,y and z in a streams
-                x_LS =np.linspace(leading_edge_point.x, self.length, n_streamline_pts)
-                y_LS =np.linspace(leading_edge_point.y, bottom_surface_y, n_streamline_pts)
-                z_LS =np.full(n_streamline_pts, leading_edge_point.z)
+                x_LS = np.linspace(leading_edge_point.x, self.length, n_streamline_pts)
+                y_LS = np.linspace(leading_edge_point.y, lower_surface_y, n_streamline_pts)
+                z_LS = np.full(n_streamline_pts, leading_edge_point.z)
 
                 LS_Streams.append(Curve(x = x_LS,
                                         y = y_LS,
@@ -329,19 +263,64 @@ class Waverider(WaveriderCore) :
             # case 2 : lateral tip of the waverider
             elif z == self.w :
 
-                LS_Streams.append(Curve([self.lateral_tip_point, self.lateral_tip_point]))
+                SC_point            = self.lateral_tip_point
+                USC_point           = self.lateral_tip_point
+                cone_point          = self.lateral_tip_point
+                leading_edge_point  = self.lateral_tip_point
+
+                LS_Streams.append(Curve(points = [self.lateral_tip_point]))
 
             # case 3 : curved section of the SC
             else :
 
-                # need calculate R minus height of osculating plane
-                eta_le = radius_curvature - SC_point.distanceTo(USC_point)
+                # get t_SC and get the SC point
+                t_SC = find_t(SC_Bezier, z)
+                SC_point = SC_Bezier.Evaluate(t_SC)
+                
+                # get first derivative of SC bezier curve at t_SC
+                dSC_dt = SC_Bezier.Evaluate_FirstDerivative(t_SC) 
 
-                # calculate the angle to rotate the streamlines by
-                alpha=np.arctan(dy_dz)
+                # calculate dydz
+                dy_dz = dSC_dt.y / dSC_dt.z
+
+                # calculate slope of the line going through SC_point
+                # and intersecting with the USC
+                slope = - 1 / dy_dz
+                
+                # get the intersection with the USC
+                def f(z) :
+                    t_USC = find_t(USC_Bezier, z_target=z) 
+                    return USC_Bezier.Evaluate(t_USC).y - base_plane_line_equation(z, slope, SC_point)
+                
+                intersection=root_scalar(f,bracket=[0, self.w])
+                z_USC = intersection.root
+                t_USC = find_t(USC_Bezier, z_target=z_USC)
+                USC_point = USC_Bezier.Evaluate(t_USC) 
+
+                # calculate second derivative to get radius of curvature
+                dSC2_dt2 = SC_Bezier.Evaluate_SecondDerivative(t_SC)  
+
+                # get the cone center coordinates
+                radius_curvature = calculate_radius_curvature(dSC_dt, dSC2_dt2)
+                alpha = np.arctan(dy_dz)
+                z_cone = SC_point.z - np.sin(alpha) * radius_curvature
+                y_cone = SC_point.y + np.cos(alpha) * radius_curvature
+                # distance between SC Point and cone center projection on base plane
+                d = SC_point.distanceTo(Point(x = self.length, y = y_cone, z=z_cone))
+                x_cone = self.length - d / np.tan(self.betaRad)
+
+                cone_point = Point(x = x_cone,
+                                   y = y_cone,
+                                   z = z_cone)
+                
+                leading_edge_point = calculate_LE_point(cone_point, SC_point, USC_point.y)
+
+                # need to calculate R minus height of osculating plane
+                eta_le = radius_curvature - SC_point.distanceTo(USC_point)
 
                 x_le=(eta_le) / np.tan(self.betaRad) 
 
+                # get the local LS stream
                 sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(radius_curvature / np.tan(self.betaRad),), max_step=dx_LS_streamline*self.length)
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
 
@@ -349,26 +328,127 @@ class Waverider(WaveriderCore) :
                 x_LS = stream[:,0] + cone_point.x
                 y_LS = stream[:,1] + cone_point.y
                 z_LS = stream[:,2] + cone_point.z
-
+                
                 LS_Streams.append(Curve(x = x_LS,
                                         y = y_LS,
                                         z = z_LS))
-                                        
 
+            SC_base.add_point(SC_point)
+            USC_intersections.add_point(USC_point)
+            cone_centers.add_point(cone_point)
+            leading_edge.add_point(leading_edge_point)
 
+        # calculate upper surface streams
+        US_Streams = []
+        for leading_edge_point, USC_point in zip(leading_edge, USC_intersections):
 
+            if leading_edge_point.z == self.w :
+                US_Streams.append(Curve(points = [self.lateral_tip_point]))
+            else :
+                US_Streams.append(Curve(x = np.linspace(leading_edge_point.x, USC_point.x, n_streamline_pts),
+                                        y = np.full(n_streamline_pts, leading_edge_point.y),
+                                        z = np.full(n_streamline_pts, leading_edge_point.z)))        
+
+        # collect all relevant curves in a dict
+        curves = {"SC"  : SC_base,
+                  "USC" : USC_intersections,
+                  "LSC" : Curve([c[-1] for c in LS_Streams]),
+                  "LE"  : leading_edge}
         
+        # create an instance of Streams dataclass
+        streams = Streams(US_Streams, LS_Streams)
 
+        return streams, curves
+    
+    @staticmethod
+    def to_CAD(streams : Streams, 
+                sides : Literal['left', 'right', 'both'] = 'left',
+                export_filename: str = os.path.join(os.getcwd(), 'waverider.step'), 
+                scale : float = 1e3
+                ) :
         
-        # return SC_base, USC_intersections, cone_centers, leading_edge, radii
-        return US_Streams, LS_Streams, {
-                "SC_base": SC_base,
-                "USC_intersections": USC_intersections,
-                "cone_centers" : cone_centers,
-                "leading_edge" : leading_edge,
-                "radii_curvature" : np.array(radii_curvature),
-                "dy_dz" : dy_dz_slope
-               }
+        if sides not in ['left', 'right', 'both'] :
+            raise ValueError("sides must be 'left', 'right' or 'both'")
+        
+        if scale <= 0 :
+            raise ValueError('scale must be positive. Set to 1e3 for dimensions in meters')
+        
+        def point_to_vec(point : Point) :
+            return cq.Vector(point.x, point.y, point.z)
+        
+        def curve_to_vectors(curve : Curve) :
+
+            if len(curve) == 0 : raise ValueError('curve cannot be empty')
+
+            return [point_to_vec(p) for p in curve] 
+        
+        # extract streams
+        US_Streams = streams.US_Streams
+        LS_Streams = streams.LS_Streams
+
+        # define all relevant edges
+        leading_edge        = cq.Edge.makeSpline([point_to_vec(c[0]) for c in US_Streams])
+        sym_upper_edge      = cq.Edge.makeSpline([point_to_vec(p) for p in US_Streams[0]])
+        sym_lower_edge      = cq.Edge.makeSpline([point_to_vec(p) for p in LS_Streams[0]])
+
+        upper_back_point    = US_Streams[0][-1]
+        lower_back_point    = LS_Streams[0][-1]
+        sym_back_edge       = cq.Edge.makeLine(v1 = point_to_vec(upper_back_point), v2 = point_to_vec(lower_back_point))
+
+        USC_edge            = cq.Edge.makeSpline(curve_to_vectors(Curve([c[-1] for c in US_Streams])))
+        LSC_edge            = cq.Edge.makeSpline(curve_to_vectors(Curve([c[-1] for c in LS_Streams])))
+
+        # create symmetry plane face and back plane face
+        sym_face            = cq.Face.makeNSidedSurface([sym_upper_edge, sym_lower_edge, sym_back_edge], [])
+        back_face           = cq.Face.makeNSidedSurface([USC_edge, LSC_edge, sym_back_edge], [])
+
+        # get lower surface and upper surface interior points
+        ls_interior_points = []
+        us_interior_points = []
+        for us_stream, ls_stream in zip(US_Streams[1:-1], LS_Streams[1:-1]) :
+
+            for us_point in us_stream :
+                us_interior_points.append(us_point.toTuple()) 
+
+            for ls_point in ls_stream :
+                ls_interior_points.append(ls_point.toTuple()) 
+
+        # create lower surface and upper surface
+        ls_face = cq.Workplane("XY").interpPlate([cq.Wire.assembleEdges([leading_edge, sym_lower_edge, LSC_edge])], ls_interior_points, 0)._getFaces()[0]
+        us_face = cq.Workplane("XY").interpPlate([cq.Wire.assembleEdges([leading_edge, sym_upper_edge, USC_edge])], us_interior_points, 0)._getFaces()[0]
+
+        # create a shell from all the faces
+        shell = cq.Shell.makeShell([back_face, sym_face, us_face, ls_face]).clean().scale(scale).Shells()[0]
+
+        # create left and right side as shells
+        left_side   = cq.Solid.makeSolid(shell)
+        right_side  = left_side.mirror().Solids()[0]
+        
+        # define solid based on chosen sides
+        if      sides == 'left'     : solid = left_side
+        elif    sides == 'right'    : solid = right_side
+        elif    sides == 'both'     : solid =  (
+                                                cq.Workplane('XY')
+                                                .add(left_side)
+                                                .add(right_side)
+                                                .combine()
+                                                .findSolid()
+                                                .Solids()[0]
+                                                )
+        
+        # export cad model
+        if export_filename != '' :
+            cq.exporters.export(solid, export_filename)
+
+        return solid
+
+
+
+
+
+
+
+
         
 
 def exp_spacing(n : int, k : int = 2) -> np.ndarray:
