@@ -4,14 +4,14 @@ import sys
 # Assumes that cwd is the repo folder
 sys.path.append('waverider_generator')
 
-from waverider_generator.input_validation import GeometricParameters, FlowParameters
-from waverider_generator.generator2 import Waverider
 import matplotlib.pyplot as plt 
-plt.rcParams.update({'font.size': 11})
+from waverider_generator import *
+
 
 try :
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
+    plt.rcParams.update({'font.size': 11})
 except :
     pass
     

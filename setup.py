@@ -17,6 +17,6 @@ setup(
     url='https://github.com/jade5638/waverider_generator',
     long_description=LONG_DESCRIPTION,
     packages=find_packages(),
-    install_requires=['numpy','cadquery','scipy','matplotlib'],
+    install_requires=['numpy','cadquery','scipy'],
     keywords=['python', 'waverider', 'CAD', 'hypersonic','aerospace-engineering','osculating-cone']
 )

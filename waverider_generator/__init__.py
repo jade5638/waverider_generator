@@ -1,3 +1,3 @@
-from waverider_generator.generator import waverider
-from waverider_generator import cad_export, plotting_tools
-__all__ = ["waverider","cad_export","plotting_tools"]
+from waverider_generator.generator import Waverider, Streams
+from waverider_generator.input_validation import GeometricParameters, FlowParameters
+__all__ = ["Waverider", "Streams", "GeometricParameters", "FlowParameters"]

@@ -1,298 +1,324 @@
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from waverider_generator.flowfield import cone_angle,cone_field
-from typing import Union
+from typing import Union, Dict, Tuple, Iterable, Literal
+from waverider_generator.input_validation import GeometricParameters, FlowParameters
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from waverider_generator.curves import Curve, BezierCurve, Point
+import os
+import cadquery as cq
 
-'''
-+-----------------------------------+
-| Created by Jade Nassif            |
-| Github : jade5638                 |
-| Email : jade.nassif2002@gmail.com |
-+-----------------------------------+
-'''
-'''
-Documentation on the inputs is provided in the README file
+@dataclass(frozen=True, slots=True)
+class Streams :
+    '''
+    Dataclass which defines a built waverider purely via its upper and lower surface streams.
+    '''
 
-Note that the following convention is used in this code:
-x --> streamwise direction
-y --> transverse direction
-z --> spanwise direction
-with origin at the waverider tip
+    US_Streams : list[Curve]
+    LS_Streams : list[Curve]
 
-A local 2D coordinate system with origin at the shockwave symmetry plane also exists with 
-y_bar=y-height, z_bar=z and x=length 
-'''
+    def __init__(self, US_Streams : list[Curve], LS_Streams : list[Curve]) :
 
-class waverider():
+        if not all(isinstance(stream, Curve) for stream in US_Streams):
+            raise TypeError("All streams in US_Streams must be Curve instances")
+
+        if not all(isinstance(s, Curve) for s in LS_Streams):
+            raise TypeError("All streams in US_Streams must be Curve instances")
+        
+        if not (len(US_Streams) == len(LS_Streams) and len(US_Streams) >= 3) : 
+            raise ValueError("Both US_Streams and LS_Streams must be the same length and contain at least three Curve instances")
+        
+        object.__setattr__(self, 'US_Streams', US_Streams)
+        object.__setattr__(self, 'LS_Streams', LS_Streams)
+        
+class IWaverider(ABC) :
+    '''
+    Waverider Interface.
+    '''
+
+    __slots__ = ("_geo_params", "_flow_params")
     
-    # constructor
-    def __init__(self,M_inf: Union[float,int],beta: Union[float,int],height: Union[float,int],width: Union[float,int],dp:list,n_upper_surface:int,n_shockwave:int,**kwargs):
+    @property
+    @abstractmethod
+    def geo_params(self) -> GeometricParameters : ...
 
-        ''''
-        +-------------------+
-        | initialise inputs |
-        +-------------------+
+    @property
+    @abstractmethod
+    def flow_params(self) -> FlowParameters : ...
+
+class WaveriderCore(IWaverider) : 
+
+    '''
+    Core waverider class. Used only to define the constructor and class attributes.
+    '''
+    __slots__ = ()
+
+    def __init__(self, geo_params   : GeometricParameters, 
+                       flow_params  : FlowParameters) :
+        
+        if not isinstance(geo_params,   GeometricParameters) : raise TypeError("geo_params must be a 'GeometricParameters' instance")
+        if not isinstance(flow_params,  FlowParameters)      : raise TypeError("flow_params must be a 'FlowParameters' instance")
+
+        self._geo_params     = geo_params
+        self._flow_params    = flow_params
+
+    @property
+    def geo_params(self) -> GeometricParameters:
+        '''
+        Geometric Parameters of the waverider
+        '''
+        return self._geo_params
+
+    @property
+    def flow_params(self) -> FlowParameters:
+        '''
+        Flow Parameters of the waverider
+        '''
+        return self._flow_params
+    
+class Waverider(WaveriderCore) :
+    '''
+    Build and export a CAD model of an osculating cone waverider.
+    '''
+
+    __slots__ = ()
+
+    @property
+    def thetaDeg(self) -> float :
+        '''
+        Deflection angle in degrees
+        '''
+        return calculate_deflection_angle(self._flow_params)
+    
+    @property
+    def thetaRad(self) -> float :
+        '''
+        Deflection angle in radians
+        '''
+        return np.radians(self.thetaDeg)
+    
+    @property
+    def length(self) -> float :
+        '''
+        Length of the waverider
+        '''
+        return self.h / np.tan(self.betaRad)
+    
+    @property
+    def cone_angle_deg(self) -> float :
+        '''
+        Cone angle in degrees
+        '''
+        return cone_angle(self.M_design, self.betaDeg, self.gamma)
+    
+    @property
+    def cone_angle_rad(self) -> float :
+        '''
+        Cone angle in radians
+        '''
+        return np.radians(self.cone_angle_deg)
+
+    @property
+    def M_design(self) -> float :
+        '''
+        Design Mach Number
+        '''
+        return self.flow_params.M_design
+    
+    @property
+    def betaDeg(self) -> float :
+        '''
+        Shock angle in degrees
+        '''
+        return self.flow_params.betaDeg
+    
+    @property
+    def betaRad(self) -> float :
+        '''
+        Shock angle in radians
+        ''' 
+        return np.radians(self.betaDeg)
+    
+    @property
+    def gamma(self) -> float :
+        '''
+        Ratio of specific heats
+        '''
+        return self.flow_params.gamma
+    
+    @property
+    def X1(self) -> float :
+        '''
+        Geometric Parameter X1
+        '''
+        return self.geo_params.X1
+    
+    @property
+    def X2(self) -> float :
+        '''
+        Geometric Parameter X2
+        '''
+        return self.geo_params.X2
+    
+    @property
+    def X3(self) -> float :
+        '''
+        Geometric Parameter X3
+        '''
+        return self.geo_params.X3
+    
+    @property
+    def X4(self) -> float :
+        '''
+        Geometric Parameter X4
+        '''
+        return self.geo_params.X4
+    
+    @property
+    def w(self) -> float :
+        '''
+        Half-width of the waverider
+        '''
+        return self.geo_params.w
+    
+    @property
+    def h(self) -> float :
+        '''
+        Height of the waverider at the symmetry plane
+        '''
+        return self.geo_params.h
+    
+    @property
+    def SC_ControlPoints(self) -> Curve :
+        '''
+        Shockwave Curve Control Points
+        '''
+        return Curve(
+            x = self.length * np.ones(5),
+            y = np.concatenate((np.zeros(4), np.array([self.h * self.X2]))) - self.h,
+            z = np.linspace(self.X1 * self.w, self.w, 5)
+            )
+    
+    @property
+    def USC_ControlPoints(self) -> Curve :
+        '''
+        Upper Surface Curve Control Points
+        '''
+        curve = Curve(
+            x = self.length * np.ones(3),
+            y = np.array([0, - (1 - self.X2) * self.X3 * self.h, - (1 - self.X2) * self.X4 * self.h]),
+            z = np.linspace(0, self.w, 4)[:3]
+            )
+        
+        curve.add_point(self.SC_ControlPoints[-1])
+
+        return curve
+    
+    @property
+    def SC_Bezier(self) -> BezierCurve :
+        '''
+        Bezier Curve of the Shockwave Curve
+        '''
+        return BezierCurve(self.SC_ControlPoints)
+
+    @property
+    def USC_Bezier(self) -> BezierCurve :
+        '''
+        Bezier Curve of the Upper Surface Curve
+        '''
+        return BezierCurve(self.USC_ControlPoints)
+    
+    @property
+    def z_crit(self) -> float :
+        '''
+        Critical z coordinate (after which the SC is defined by its Bezier Curve)
+        '''
+        
+        return self.w * self.X1
+    
+    @property
+    def lateral_tip_point(self) -> Point :
+        '''
+        Lateral Tip of the Waverider
+        '''
+        return self.SC_ControlPoints[-1]
+
+    def Build(self, 
+            z_base                  : Union[Iterable[float], None] = None,
+            n_planes                : int   = 50,
+            n_streamline_pts        : int   = 50,  
+            dx_LS_streamline        : float = 0.1)  -> Tuple[Streams, Dict[str, Curve]]:
+        
+        '''
+        Build the waverider.
+
+        :param z_base:  z coordinates to iterate through at the base plane.\n
+                        Requires z[0] == 0 and z[-1] == w where w is the half-width.\n
+                        If None, a default exponential spacing function is used together with n_planes.
+
+        :type z_base: Union[Iterable[float], None]
+
+        :param n_planes:    Number of osculating planes (including symmetry and lateral tip).\n
+                            Must be >= 3.\n
+                            Only used if z_base is None.
+
+        :type n_planes: int
+
+        :param n_streamline_pts:    Discretisation streamline points for US Streams and LS Streams (in the flat part of the SC).\n
+                                    Must be >= 10 to preserve quality.
+
+        :type n_streamline_pts: int
+
+        :param dx_LS_streamline:    Maximum step in tracing of the LS streamlines, entered as a percentage of the waverider length.\n
+                                    Must satisfy 0 < dx_LS_streamline <= 0.2 to preserve quality.
+
+        :type dx_LS_streamline: float
+
+        :return:    The Streams instance contains the waverider defined purely by its spanwise uoper and lower surface streams.\n
+                    The dictionary will contain Curve instances and the following keys :\n
+                    1. 'SC' - Shockwave Curve\n
+                    2. 'USC' - Upper Surface Curve\n
+                    3. 'LSC' - Lower Surface Curve\n
+                    4. 'LE'  - Leading Edge Curve\n
+        :rtype: Tuple[Streams, Dict[str, Curve]]
         '''
 
-        if not isinstance(M_inf, (float, int)) or M_inf <= 0:
-            raise ValueError("Mach number must be a positive number")
-        else:
-            self.M_inf=float(M_inf)
+        # n_planes input validation 
+        if int(n_planes) != n_planes : raise ValueError("n_planes must be an integer")
+        if n_planes < 3 : raise ValueError("n_planes must be >= 3")
 
-        if not isinstance(beta, (float, int)) or not (0 < beta < 90):
-            raise ValueError("beta must be a float or integer between 0 and 90 degrees.")
-        else:
-            self.beta=float(beta)
+        # n_streamline_pts input validation
+        if n_streamline_pts < 10 : raise ValueError("n_streamline_pts must be >= 10")
 
-        if not isinstance(height,(float,int)) or height<=0:
-            raise ValueError("height must be a positive number")
-        else:
-            self.height=float(height)
+        # dx_LS_streamline input validation
+        if not (0 < dx_LS_streamline <= 0.2) : 
+            raise ValueError("dx_LS_streamlines_pts must be in (0, 0.2]")
         
-        if not isinstance(width,(float,int)) or width<=0:
-            raise ValueError("width must be a positive number")
-        else:
-            self.width=float(width)
-        
-        error=""
-        if not isinstance(dp,list):
-            error=error+'dp must be a list\n'
-        
-        if len(dp)!=4:
-            error=error+'dp must contain 4 elements'
+        # set z_base or get from user input 
+        if z_base is None : 
+            z_base = np.sort(self.w * exp_spacing(n_planes)) 
+        else :
 
-        if error!="":
-            raise ValueError(error)
-        
-        for parameter in dp:
-            if not isinstance(parameter,(float,int)):
-                raise ValueError('please enter a valid float or int for the design parameters')
+            z_base = np.sort(np.array(z_base))
+
+            if not (z_base[0]  == 0) : 
+                raise ValueError('Minimum value in z_base must be 0')
+            if not (z_base[-1] == self.w) : 
+                raise ValueError('Maximum value in z_base must be the half-width of the waverider "w"')
+            if len(z_base) != len(np.unique(z_base)) : 
+                raise ValueError('z_base must contain unique values of z in [0, w]')
             
-        # extract the design parameters                
-        self.X1=dp[0]
-        self.X2=dp[1]
-        self.X3=dp[2]
-        self.X4=dp[3]
-
-        # check that condition for inverse design is respected
-        if (self.X1<1 and self.X1>=0) and (self.X2<=1 and self.X2>=0):
-            if not ((self.X2/((1-self.X1)**4))<(7/64)*(self.width/self.height)**4):
-                raise ValueError("Condition for inverse design not respected, check value of design parameters X1 and X2")
-        else:
-            raise ValueError("X1 and/or X2 are not in the required range")
-
-        if not (self.X3>=0 and self.X3<=1):
-            raise ValueError("X3 must be between 0 and 1")
-        
-        if not (self.X4>=0 and self.X4<=1):
-            raise ValueError("X4 must be between 0 and 1")
-        
-        if not isinstance(n_upper_surface,int) or n_upper_surface<10:
-            raise ValueError('number of points on the upper surface for interpolation must be an integer greater than or equal to 10')
-        
-        if not isinstance(n_shockwave,int) or n_shockwave<10:
-            raise ValueError('number of points on the shockwave for interpolation must be an integer greater than or equal to 10')
-                
-        # check optional input "n_planes"
-        if "n_planes" in kwargs:
-            n_planes = kwargs["n_planes"]
-            if not (isinstance(n_planes, int) and n_planes >= 10):
-                raise TypeError("The number of planes must be an integer and at least 10")
-            self.n_planes = n_planes
-        else:
-            self.n_planes = 10
-
-        # check optional input "n_streamwise"
-        if "n_streamwise" in kwargs:
-            n_streamwise = kwargs["n_streamwise"]
-            if not (isinstance(n_streamwise, int) and n_streamwise >= 10):
-                raise TypeError("The number of streamwise upper surface points must be an integer and at least 10")
-            self.n_streamwise = n_streamwise
-        else:
-            self.n_streamwise = 10
-
-        # check optional input "delta_streamwise"
-        if "delta_streamwise" in kwargs:
-            delta_streamwise = kwargs["delta_streamwise"]
-            if isinstance(delta_streamwise, float) and (delta_streamwise<=0.2 and delta_streamwise>0):
-                self.delta_streamwise = delta_streamwise
-            else:
-                raise ValueError("delta_streamwise must be a percentage between 0 and 20 percent of the waverider length")
-        else:
-            self.delta_streamwise = 0.05
+            print('Using custom z_base, argument n_planes is overridden.\n')
 
 
-        #ratio of specific heats
-        self.gamma=1.4
-
-        #computes self.theta, the deflection angle corresponding to a shock angle in oblique shock relations
-        self.Compute_Deflection_Angle()
-
-        # obtain length of waverider from tip to base plane
-        self.length=height/np.tan(self.beta*np.pi/180)
-
-        ''''
-        +--------------------------------------------------+
-        | define the shockwave based on the control points |
-        +--------------------------------------------------+
-        '''
-        # stores coordinates of all the control points in format z_bar,y_bar
-        # four of the points are y_bar=0 already
-        self.s_cp=np.zeros((5,2))
-
-        # all five points are evenly distributed in z
-        self.s_cp[:,0]=np.transpose(np.linspace(self.X1*self.width,self.width,5))
-
-        # assign the y_bar of the last point
-        self.s_cp[-1,1]=self.X2*self.height
-
-        # express the control points as individual points
-        # column 1 is z and column 2 is y_bar
-        self.s_P0=self.s_cp[0,:]
-        self.s_P1=self.s_cp[1,:]
-        self.s_P2=self.s_cp[2,:]
-        self.s_P3=self.s_cp[3,:]
-        self.s_P4=self.s_cp[4,:]
-
-        ''''
-        +---------------------------------------------+
-        | define the upper surface via control points |
-        +---------------------------------------------+
-        '''
-        # same procedure as with shockwave curve
-        self.us_cp=np.zeros((4,2))
-
-        # assign z coordinates of all points defining upper surface, equally spaced
-        self.us_cp[:,0]=np.transpose(np.linspace(0,self.width,4))
-
-        #assign y_bar coordinates of all points on upper surface
-        self.us_cp[0,1]=self.height
-        self.us_cp[1,1]=self.height-(1-self.X2)*self.X3*self.height
-        self.us_cp[2,1]=self.height-(1-self.X2)*self.X4*self.height
-
-        #assign last point using the P4 computed for the shockwave
-        self.us_cp[3,:]=self.s_P4
-
-        #define control points individually
-        self.us_P0=self.us_cp[0,:]
-        self.us_P1=self.us_cp[1,:]
-        self.us_P2=self.us_cp[2,:]
-        self.us_P3=self.us_cp[3,:]
-
-        ''''
-        +-------------------------------------------------------------------+
-        | create interpolation objects for shockwave and upper surface curve|
-        +-------------------------------------------------------------------+
-        '''
-        # create an interpolation object for upper surface curve and curved part of the shockwave:
-        # self.Interpolate_Upper_Surface
-        # self.Interpolate_Shockwave
-        self.Create_Interpolated_Upper_Surface(n=n_upper_surface)
-        self.Create_Interpolated_Shockwave(n=n_shockwave)
-
-        ''''
-        +------------------------------------------------------------------+
-        | find intersections of osculating planes with upper surface curve |
-        +------------------------------------------------------------------+
-        '''
-        # next step is to calculate intersections with upper surface
-        # start by defining the sample of points for the shockwave in local coordinates z and y
-        self.z_local_shockwave=np.linspace(0,self.width,self.n_planes+2)
-        self.z_local_shockwave=self.z_local_shockwave[1:-1] 
-
-        #obtain the y_bar values for the z sample in self.y_local_shockwave
-        self.y_local_shockwave=np.zeros((self.n_planes,1))
-        self.Get_Shockwave_Curve()
-
-        #obtain the intersection with the upper surface in self.local_intersections_us
-        self.local_intersections_us=np.zeros((self.n_planes,2))
-        self.Find_Intersections_With_Upper_Surface()
-        ''''
-        +-------------------------------------------+
-        | compute the leading edge and cone centers |
-        +-------------------------------------------+
-        '''
-        # next step is to obtain the LE points in the global coordinate system
-        # initialise LE object
-        self.leading_edge=np.zeros((self.n_planes+2,3))
-
-        # tip is already at 0,0,0
-        # set the last point (tip at base plane)
-        self.leading_edge[-1,:]=np.array([self.length,self.Local_to_Global(self.X2*self.height),self.width])
-
-        # initialise an object for the cone centers, note in the flat these are not "cones" but still better to have a single array
-        self.cone_centers=np.zeros((self.n_planes,3))
-
-        # osculate through the planes and populate self.cone_centers and self.leading_edge
-        self.Compute_Leading_Edge_And_Cone_Centers()
-
-        ''''
-        +---------------------------+
-        | compute the upper surface |
-        +---------------------------+
-        '''
-        # next step is to compute the upper surface
-        # stored in this format for easy visualisation in matplotlib
-        self.upper_surface_x=np.zeros((self.n_planes+1,self.n_streamwise))
-        self.upper_surface_y=np.zeros((self.n_planes+1,self.n_streamwise))
-        self.upper_surface_z=np.zeros((self.n_planes+1,self.n_streamwise))
-
-        # add the symmetry plane
-        self.upper_surface_x[0,:]=np.linspace(0,self.length,self.n_streamwise)
-        self.upper_surface_y[0,:]=0
-        self.upper_surface_z[0,:]=0
-
-        self.Compute_Upper_Surface()
-
-        # add the tip point
-        x_tip = np.full((1, self.n_streamwise), self.length)
-        y_tip =np.full((1,self.n_streamwise),self.height*self.X2-self.height)
-        z_tip =np.full((1,self.n_streamwise),self.width)
-
-        self.upper_surface_x= np.vstack([self.upper_surface_x, x_tip])
-        self.upper_surface_y= np.vstack([self.upper_surface_y, y_tip])
-        self.upper_surface_z= np.vstack([self.upper_surface_z, z_tip])
-
-        # store in a streams format 
-        self.upper_surface_streams=[]
-        self.Streams_Format()
-        
-        '''
-        +---------------------------+
-        | compute the lower surface |
-        +---------------------------+
-        '''
-        
-        # next step is to trace the streamlines
-
-        # compute the cone angle in degrees
-        self.cone_angle=cone_angle(self.M_inf,self.beta,self.gamma)
-
-        self.lower_surface_streams=[]
-        
-        # populate the self.lower_surface_streams list by tracing the streamlines
-        self.Streamline_Tracing()
-
-    # convert the upper surface streams to the desired format
-    def Streams_Format(self):
-
-        for i in range(self.n_planes+2):
-
-            x=self.upper_surface_x[i,:]
-            y=self.upper_surface_y[i,:]
-            z=self.upper_surface_z[i,:]
-            self.upper_surface_streams.append(np.vstack([x,y,z]).T)
-
-            # keep only twice the same point for the tip
-            if i==self.n_planes+1:
-                self.upper_surface_streams[i]=self.upper_surface_streams[i][0:2,:]
-
-    def Streamline_Tracing(self):
+        # get the Bezier curves for SC and USC
+        SC_Bezier           = self.SC_Bezier
+        USC_Bezier          = self.USC_Bezier
 
         # propagate the streamlines
-        Vr, Vt = cone_field(self.M_inf,self.cone_angle*np.pi/180,self.beta*np.pi/180,self.gamma)
+        Vr, Vt = cone_field(self.M_design, self.cone_angle_rad, self.betaRad, self.gamma)
 
         # ODE which propagates the streamlines
         def stode(t, x, y_max):
@@ -311,302 +337,319 @@ class waverider():
         
         back.terminal = True
         
-        # make the following arrays of size n_planes+2
-        leading_edge=self.leading_edge
-        y_local_shockwave=self.y_local_shockwave
-        y_local_shockwave=np.vstack((np.array([[0]]),y_local_shockwave,np.array([[self.X2*self.height]])))
+        # initialise all Curve instances 
+        # defined in global coordinate system
+        SC_base             = Curve()
+        USC_intersections   = Curve()
+        cone_centers        = Curve()
+        leading_edge        = Curve()
+        LS_Streams          = []
 
-        z_local_shockwave=self.z_local_shockwave[:,None]
-        z_local_shockwave=np.vstack((np.array([[0]]),z_local_shockwave,np.array([[self.width]])))
+        # iterate across z_base
+        for z in z_base :
 
-        cone_centers=self.cone_centers
-        cone_centers=np.vstack((np.array([[0,0,0]]),cone_centers,np.array([[self.length,self.Local_to_Global(self.X2*self.height),self.width]])))
+            # case 1 : flat part of the SC
+            if z <= self.z_crit or self.X2 == 0 :
 
-        local_intersections_us=self.local_intersections_us
-        local_intersections_us=np.vstack((np.array([[0,self.height]]),local_intersections_us,np.array([[self.width,self.X2*self.height]])))
+                # get the SC point
+                SC_point = Point(x = self.length, y = - self.h, z = z)
 
-        for i,le_point in enumerate(leading_edge):
-            # tip
-            if i==len(leading_edge)-1:
-                stream=np.vstack((le_point,le_point))
-                self.lower_surface_streams.append(stream)
+                # get the t_USC and set the USC point
+                t_USC = find_t(USC_Bezier, z_target=z)
+                USC_point = USC_Bezier.Evaluate(t_USC) 
 
-            # flat region
-            elif z_local_shockwave[i,0]<=self.X1*self.width or self.X2==0:
+                # get the 'cone' center point
+                cone_point = Point(x = self.length - (USC_point.y - SC_point.y) / np.tan(self.betaRad), 
+                                   y = USC_point.y,
+                                   z = z)
+                 
+                # get the leading edge point
+                # in the flat part this is equivalent to the 'cone center' 
+                leading_edge_point = cone_point
 
-                # trigonometry with deflection angle
-                bottom_surface_y=le_point[1]-np.tan(self.theta*np.pi/180)*(self.length-le_point[0])
+                # get lower surface y
+                lower_surface_y = leading_edge_point.y - np.tan(self.thetaRad) * (self.length - leading_edge_point.x)
 
                 # store the x,y and z in a streams
-                x=np.linspace(le_point[0],self.length,self.n_streamwise)[:,None]
-                y=np.linspace(le_point[1],bottom_surface_y,self.n_streamwise)[:,None]
-                z=np.full((y.shape),le_point[2])
+                x_LS = np.linspace(leading_edge_point.x, self.length, n_streamline_pts)
+                y_LS = np.linspace(leading_edge_point.y, lower_surface_y, n_streamline_pts)
+                z_LS = np.full(n_streamline_pts, leading_edge_point.z)
 
-                self.lower_surface_streams.append(np.column_stack([x,y,z]))
+                LS_Streams.append(Curve(x = x_LS,
+                                        y = y_LS,
+                                        z = z_LS))
 
-            # curved region
-            else:
+            # case 2 : lateral tip of the waverider
+            elif z == self.w :
 
-                # need calculate R minus height of osculating plane
-                eta_le=Euclidean_Distance(
-                    local_intersections_us[i,0],
-                    self.Local_to_Global(local_intersections_us[i,1]),
-                    cone_centers[i,2],
-                    cone_centers[i,1]
-                ) 
-                r=Euclidean_Distance(
-                    z_local_shockwave[i,0],
-                    self.Local_to_Global(y_local_shockwave[i,0]),
-                    cone_centers[i,2],
-                    cone_centers[i,1]
-                ) 
+                SC_point            = self.lateral_tip_point
+                USC_point           = self.lateral_tip_point
+                cone_point          = self.lateral_tip_point
+                leading_edge_point  = self.lateral_tip_point
 
-                # calculate the angle to rotate the streamlines by
-                m,_,_=self.Get_First_Derivative(z_local_shockwave[i,0])
-                alpha=np.arctan(m)
+                LS_Streams.append(Curve(points = [self.lateral_tip_point]))
 
-                x_le=(eta_le)/ np.tan(self.beta*np.pi/180) 
+            # case 3 : curved section of the SC
+            else :
 
-                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(r / np.tan(self.beta*np.pi/180),), max_step=self.delta_streamwise*self.length)
+                # get t_SC and get the SC point
+                t_SC = find_t(SC_Bezier, z)
+                SC_point = SC_Bezier.Evaluate(t_SC)
+                
+                # get first derivative of SC bezier curve at t_SC
+                dSC_dt = SC_Bezier.Evaluate_FirstDerivative(t_SC) 
+
+                # calculate dydz
+                dy_dz = dSC_dt.y / dSC_dt.z
+
+                # calculate slope of the line going through SC_point
+                # and intersecting with the USC
+                slope = - 1 / dy_dz
+                
+                # get the intersection with the USC
+                def f(z) :
+                    t_USC = find_t(USC_Bezier, z_target=z) 
+                    return USC_Bezier.Evaluate(t_USC).y - base_plane_line_equation(z, slope, SC_point)
+                
+                intersection=root_scalar(f,bracket=[0, self.w])
+                z_USC = intersection.root
+                t_USC = find_t(USC_Bezier, z_target=z_USC)
+                USC_point = USC_Bezier.Evaluate(t_USC) 
+
+                # calculate second derivative to get radius of curvature
+                dSC2_dt2 = SC_Bezier.Evaluate_SecondDerivative(t_SC)  
+
+                # get the cone center coordinates
+                radius_curvature = calculate_radius_curvature(dSC_dt, dSC2_dt2)
+                alpha = np.arctan(dy_dz)
+                z_cone = SC_point.z - np.sin(alpha) * radius_curvature
+                y_cone = SC_point.y + np.cos(alpha) * radius_curvature
+
+                # distance between SC Point and cone center projection on base plane
+                d = SC_point.distanceTo(Point(x = self.length, y = y_cone, z=z_cone))
+                x_cone = self.length - d / np.tan(self.betaRad)
+
+                cone_point = Point(x = x_cone,
+                                   y = y_cone,
+                                   z = z_cone)
+                
+                leading_edge_point = calculate_LE_point(cone_point, SC_point, USC_point.y)
+
+                # need to calculate R minus height of osculating plane
+                eta_le = radius_curvature - SC_point.distanceTo(USC_point)
+
+                x_le=(eta_le) / np.tan(self.betaRad) 
+
+                # get the local LS stream
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, 
+                                args=(radius_curvature / np.tan(self.betaRad),), 
+                                max_step=dx_LS_streamline*self.length)
+                
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
 
                 # transform from cone center coordinate system to global
-                stream[:,0]=stream[:,0]+cone_centers[i,0]
-                stream[:,1]=stream[:,1]+cone_centers[i,1]
-                stream[:,2]=stream[:,2]+cone_centers[i,2]
-
-                # append
-                self.lower_surface_streams.append(stream)
-
-    def Compute_Upper_Surface(self):
-        
-        for i in range(0,self.n_planes):
-            self.upper_surface_x[i+1,:]=np.linspace(self.leading_edge[i+1,0],self.length,self.n_streamwise)
-            self.upper_surface_y[i+1,:]=np.linspace(self.leading_edge[i+1,1],self.Local_to_Global(self.local_intersections_us[i,1]),self.n_streamwise)
-            self.upper_surface_z[i+1,:]=np.linspace(self.leading_edge[i+1,2],self.local_intersections_us[i,0],self.n_streamwise)
-        
-    def Compute_Leading_Edge_And_Cone_Centers(self):
-
-        for i,z in enumerate(self.z_local_shockwave):
-             
-            if z<=self.X1*self.width or self.X2==0:
-                self.cone_centers[i,0]=self.length-((self.local_intersections_us[i,1]-self.y_local_shockwave[i,0])/np.tan(self.beta*np.pi/180))
-                self.cone_centers[i,1]=self.Local_to_Global(self.local_intersections_us[i,1])
-                self.cone_centers[i,2]=float(z)
-
-                self.leading_edge[i+1,:]=self.cone_centers[i,:]
-
-            else:
-
-                #calculate corresponding t value
-                t=self.Find_t_Value(z)
-                # first derivative and radius
-                first_derivative,_,_=self.First_Derivative(t)
-                radius=self.Calculate_Radius_Curvature(t)
-
-                self.leading_edge[i+1,:]=self.cone_centers[i,:]
-                # get angle theta
-                theta=np.arctan(first_derivative)
+                x_LS = stream[:,0] + cone_point.x
+                y_LS = stream[:,1] + cone_point.y
+                z_LS = stream[:,2] + cone_point.z
                 
-                # get x value for cone center
-                self.cone_centers[i,0]=float(self.length-radius/np.tan(self.beta*np.pi/180))
+                LS_Streams.append(Curve(x = x_LS,
+                                        y = y_LS,
+                                        z = z_LS))
 
-                # get y value for cone center
-                self.cone_centers[i,1]=float(self.Local_to_Global(self.y_local_shockwave[i,0])+np.cos(theta)*radius) 
+            SC_base.add_point(SC_point)
+            USC_intersections.add_point(USC_point)
+            cone_centers.add_point(cone_point)
+            leading_edge.add_point(leading_edge_point)
 
-                # get z value for cone center
-                self.cone_centers[i,2]=float(z-radius*np.sin(theta))
+        # calculate upper surface streams
+        US_Streams = []
+        for leading_edge_point, USC_point in zip(leading_edge, USC_intersections):
 
-                # get the location of the intersection
-                self.leading_edge[i+1,:]=self.Intersection_With_Freestream_Plane(self.cone_centers[i,0],
-                                                                                self.cone_centers[i,1],
-                                                                                self.cone_centers[i,2],
-                                                                                self.length,
-                                                                                self.Local_to_Global(self.y_local_shockwave[i,0]),
-                                                                                z,
-                                                                                self.Local_to_Global(self.local_intersections_us[i,1]))
-    
-    # find all intersections with the upper surface
-    def Find_Intersections_With_Upper_Surface(self):
+            if leading_edge_point.z == self.w :
+                US_Streams.append(Curve(points = [self.lateral_tip_point]))
+            else :
+                US_Streams.append(Curve(x = np.linspace(leading_edge_point.x, USC_point.x, n_streamline_pts),
+                                        y = np.full(n_streamline_pts, leading_edge_point.y),
+                                        z = np.full(n_streamline_pts, leading_edge_point.z)))        
 
-        for i,z in enumerate(self.z_local_shockwave):
-
-            if z<=self.X1*self.width or self.X2==0:
-                self.local_intersections_us[i,0]=z
-                self.local_intersections_us[i,1]=self.Interpolate_Upper_Surface(z)
-            else:
-                first_derivative,_,_=self.Get_First_Derivative(z)
-                # print(first_derivative)
-                intersection=self.Intersection_With_Upper_Surface(first_derivative=first_derivative,z_s=float(z),y_s=float(self.y_local_shockwave[i,:]))
-                self.local_intersections_us[i,:]=intersection
-
-    # create an interp1d object for the shockwave curve 
-    def Create_Interpolated_Shockwave(self,n):
+        # collect all relevant curves in a dict
+        curves = {"SC"  : SC_base,
+                  "USC" : USC_intersections,
+                  "LSC" : Curve([c[-1] for c in LS_Streams]),
+                  "LE"  : leading_edge}
         
-        t_values=np.linspace(0,1,n)
-        points=np.zeros((n,2))
+        # create an instance of Streams dataclass
+        streams = Streams(US_Streams, LS_Streams)
 
-        for i,t in enumerate(t_values):
-            points[i,:]=self.Bezier_Shockwave(t)
-
-        self.Interpolate_Shockwave=interp1d(points[:,0],points[:,1],kind='linear')
-
-    # creates an interp1d object for the upper surface, used to find intersection easily
-    # with root_scalar
-    def Create_Interpolated_Upper_Surface(self,n):
-
-        # values of t for the bezier curve
-        t_values=np.linspace(0,1,n)
-
-        points=np.zeros((n,2))
-
-        # get points along the bezier curve representing the upper surface
-        for i, t in enumerate(t_values):
-            points[i, :] = self.Bezier_Upper_Surface(t)
-
-        # store interp1d objected as an attribute
-        self.Interpolate_Upper_Surface=interp1d(points[:,0],points[:,1],kind='linear')
-
-    """
-    AUXILIARY FUNCTIONS    
-    """    
-    # function which determines intersection of an osculating plane with the upper surface
-    # curve
-    # inputs:
-    # - first derivative at the shockwave point (dy/dz)
-    # - z_s and y_s which are the local coordinates of the point
-    # outputs the coordinates of the intersection in local coordinates
-    def Intersection_With_Upper_Surface(self,first_derivative,z_s,y_s):
-
-        # get the constant c and slope for the line between the two points
-        c=y_s+(1/first_derivative)*z_s
-        m= -1/first_derivative
-
-        # define the function used to find the intersection between the two curves
-        def f(z):
-            return Equation_of_Line(z,m,c) - self.Interpolate_Upper_Surface(z)
+        return streams, curves
+    
+    @staticmethod
+    def to_CAD(streams : Streams, 
+                sides : Literal['left', 'right', 'both'] = 'left',
+                export_filename: str = os.path.join(os.getcwd(), 'waverider.step'), 
+                scale : float = 1e3
+                ) -> cq.Solid :
         
-        # use root_scalar method to get the root
-        intersection = root_scalar(f, bracket=[0, self.width])
+        '''
+        Export a built waverider to CAD.
 
-        # extract local coordinates of the root
-        z=intersection.root
-        y=Equation_of_Line(z,m,c)
+        :param sides:   Sides to export. Can be 'left', 'right', or 'both'. \n
+                        Default is 'left'.
 
-        return np.array([z,y])
+        :type sides: str
 
-    # get the first derivative for a z value along the shockwave
-    def Get_First_Derivative(self,z):
+        :param export_filename:     Filename of the CAD model. \n 
+                                    The CAD type is inferred from the file extension (e.g., '.step'). \n
+                                    Defaults to 'waverider.step' in the current directory. \n 
+                                    Set export_filename = '' to disable CAD export.
 
-        # get the corresponding t value
-        t=self.Find_t_Value(z)
+        :type export_filename: str
 
-        first_derivative,dzdt,dydt=self.First_Derivative(t)
+        :param scale:   Scale factor applied to all model dimensions (CadQuery default units are mm). \n 
+                        Use 1000 for meters.
 
-        return first_derivative,dzdt,dydt
+        :type scale: float
 
-    # get the y_bar coordinates of all points along the shockwave curve by means of 
-    # interpolation
-    def Get_Shockwave_Curve(self):
+        :return: Cadquery Solid model of the waverider  
 
-        for i,z in enumerate(self.z_local_shockwave):
-            if z<=self.width*self.X1:
-                self.y_local_shockwave[i,0]=0
-            else:
-                self.y_local_shockwave[i,0]=float(self.Interpolate_Shockwave(float(z)))
-    
-    # bezier curve defining the shockwave
-    # returns np.array([z,y])
-    def Bezier_Shockwave(self,t):
-
-        point=(1-t)**4*self.s_P0+4*(1-t)**3*t*self.s_P1+6*(1-t)**2*t**2*self.s_P2+4*(1-t)*t**3*self.s_P3+t**4*self.s_P4
-
-        return point
-    
-    # returns slope m, dz/dt and dy/dt
-    def First_Derivative(self, t):
-
-        first_derivative = 4 * (1-t)**3 * (self.s_P1 - self.s_P0) + 12 * (1-t)**2 * t * (self.s_P2 - self.s_P1) + 12 * (1-t) * t**2 * (self.s_P3 - self.s_P2) + 4 * t**3 * (self.s_P4 - self.s_P3)
-    
-        return first_derivative[1]/first_derivative[0],first_derivative[0],first_derivative[1]
-    
-    # returns components of second derivative of point along shockwave curve with respect to t
-    # z and y respectively
-    def Second_Derivative(self, t):
-
-        second_derivative = 12 * (1-t)**2 * (self.s_P2 - 2 * self.s_P1 + self.s_P0) + 24 * (1-t) * t * (self.s_P3 - 2 * self.s_P2 + self.s_P1) + 12 * t**2 * (self.s_P4 - 2 * self.s_P3 + self.s_P2)
-        return second_derivative[0],second_derivative[1]
-    
-    # Bezier curve of upper surface
-    # output is an np.array([z,y]) in local coordinates
-    def Bezier_Upper_Surface(self, t):
-
-        point = (1 - t)**3 * self.us_P0 + 3 * (1 - t)**2 * t * self.us_P1 + 3 * (1 - t) * t**2 * self.us_P2 + t**3 * self.us_P3
-
-        return point
-    
-    #convert from local to global y coordinate
-    def Local_to_Global(self,y):
-
-        y=y-self.height
-
-        return y
-    
-    # get the deflection angle resulting from the shock angle and flow conditions
-    def Compute_Deflection_Angle(self):
-
-        tanTheta=2*cot(self.beta*np.pi/180)*(self.M_inf**2*np.sin(self.beta*np.pi/180)**2-1)/(self.M_inf**2*(self.gamma+np.cos(2*self.beta*np.pi/180))+2)
-
-        self.theta=np.arctan(tanTheta)*180/np.pi
-    
-    # finds the intersection with the local freestream plane by finding the point where y=y_target=y_upper_surface
-    def Intersection_With_Freestream_Plane(self,x_C,y_C,z_C,x_S,y_S,z_S,y_target):
-
-        #  ALL COORDINATES IN GLOBAL SYSTEM
-        # x_C,y_C,z_C are coordinates of cone center
-        # x_S,y_S,z_S are coordinates of shock location in osculating plane
-
-        # need to find where y=y_target
-        # parametric curve
-        k=(y_target-y_S)/(y_C-y_S)
-
-        x_I=x_S+k*(x_C-x_S)
-        y_I=y_target
-        z_I=z_S+k*(z_C-z_S)
-
-        return np.array([x_I,y_I,z_I])
-
-
-    # calculate the radius of curvature for a given t along the bezier curve
-    def Calculate_Radius_Curvature(self,t):
+        :rtype: Solid
+        '''
         
-        _,dzdt,dydt=self.First_Derivative(float(t))
-        dzdt2,dydt2=self.Second_Derivative(float(t))
-
-        radius= 1/(abs((dzdt*dydt2-dydt*dzdt2))/((dzdt**2+dydt**2)**(3/2)))
-
-        return radius
-
-    # find the t value which corresponds to a z value
-    def Find_t_Value(self,z):
-
-        def f(t):
-            return self.Bezier_Shockwave(t)[0]-z
+        if sides not in ['left', 'right', 'both'] :
+            raise ValueError("sides must be 'left', 'right' or 'both'")
         
-        intersection=root_scalar(f,bracket=[0,1])
+        if scale <= 0 :
+            raise ValueError('scale must be positive. Set to 1e3 for dimensions in meters')
+        
+        def point_to_vec(point : Point) :
+            return cq.Vector(point.x, point.y, point.z)
+        
+        def curve_to_vectors(curve : Curve) :
 
-        return intersection.root
+            if len(curve) == 0 : raise ValueError('curve cannot be empty')
 
-'''EXTERNAL AUXILIARY FUNCTIONS'''
+            return [point_to_vec(p) for p in curve] 
+        
+        # extract streams
+        US_Streams = streams.US_Streams
+        LS_Streams = streams.LS_Streams
 
-# calculates the euclidean distance between two points in 2D
-def Euclidean_Distance(x1,y1,x2,y2):
-    return np.sqrt((x2-x1)**2+(y2-y1)**2)
+        # define all relevant edges
+        leading_edge        = cq.Edge.makeSpline([point_to_vec(c[0]) for c in US_Streams])
+        sym_upper_edge      = cq.Edge.makeSpline([point_to_vec(p) for p in US_Streams[0]])
+        sym_lower_edge      = cq.Edge.makeSpline([point_to_vec(p) for p in LS_Streams[0]])
 
-# Equation of a straight line
-def Equation_of_Line(z,m,c):
-    return m*z+c
+        upper_back_point    = US_Streams[0][-1]
+        lower_back_point    = LS_Streams[0][-1]
+        sym_back_edge       = cq.Edge.makeLine(v1 = point_to_vec(upper_back_point), v2 = point_to_vec(lower_back_point))
+
+        USC_edge            = cq.Edge.makeSpline(curve_to_vectors(Curve([c[-1] for c in US_Streams])))
+        LSC_edge            = cq.Edge.makeSpline(curve_to_vectors(Curve([c[-1] for c in LS_Streams])))
+
+        # create symmetry plane face and back plane face
+        sym_face            = cq.Face.makeNSidedSurface([sym_upper_edge, sym_lower_edge, sym_back_edge], [])
+        back_face           = cq.Face.makeNSidedSurface([USC_edge, LSC_edge, sym_back_edge], [])
+
+        # get lower surface and upper surface interior points
+        ls_interior_points = []
+        us_interior_points = []
+        for us_stream, ls_stream in zip(US_Streams[1:-1], LS_Streams[1:-1]) :
+
+            for us_point in us_stream :
+                us_interior_points.append(us_point.toTuple()) 
+
+            for ls_point in ls_stream :
+                ls_interior_points.append(ls_point.toTuple()) 
+
+        # create lower surface and upper surface
+        ls_face = cq.Workplane("XY").interpPlate([cq.Wire.assembleEdges([leading_edge, sym_lower_edge, LSC_edge])], ls_interior_points, 0)._getFaces()[0]
+        us_face = cq.Workplane("XY").interpPlate([cq.Wire.assembleEdges([leading_edge, sym_upper_edge, USC_edge])], us_interior_points, 0)._getFaces()[0]
+
+        # create a shell from all the faces
+        shell = cq.Shell.makeShell([back_face, sym_face, us_face, ls_face]).clean().scale(scale).Shells()[0]
+
+        # create left and right side as shells
+        left_side   = cq.Solid.makeSolid(shell)
+        right_side  = left_side.mirror().Solids()[0]
+        
+        # define solid based on chosen sides
+        if      sides == 'left'     : solid = left_side
+        elif    sides == 'right'    : solid = right_side
+        elif    sides == 'both'     : solid =  (
+                                                cq.Workplane('XY')
+                                                .add(left_side)
+                                                .add(right_side)
+                                                .combine()
+                                                .findSolid()
+                                                .Solids()[0]
+                                                )
+        
+        # export cad model
+        if export_filename != '' :
+            cq.exporters.export(solid, export_filename)
+
+        return solid
+
+
+'''
+Helper Functions
+'''
+
+def exp_spacing(n : int, k : int = 2) -> np.ndarray:
+    u = np.linspace(0, 1, n)
+    return 1 - (np.exp(k*u) - 1) / (np.exp(k) - 1)
+
+def calculate_LE_point(cone_point : Point, SC_point : Point, y_USC : float):
+
+    k=(y_USC-SC_point.y)/(cone_point.y-SC_point.y)
+
+    x_I=SC_point.x + k*(cone_point.x-SC_point.x)
+    y_I=y_USC
+    z_I=SC_point.z + k*(cone_point.z-SC_point.z)
+
+    return Point(x = x_I, y = y_I, z = z_I)
+
+def calculate_radius_curvature(dC_dt : Point, dC2_dt2 : Point) -> float:
+
+    dz_dt = dC_dt.z
+    dz2_dt2 = dC2_dt2.z
+
+    dy_dt = dC_dt.y
+    dy2_dt2 = dC2_dt2.y
+
+    radius= 1/(abs((dz_dt*dy2_dt2-dy_dt*dz2_dt2))/((dz_dt**2+dy_dt**2)**(3/2)))
+
+    return radius
+
+def base_plane_line_equation(z : float, m : float, known_point : Point) -> float:
+    c = known_point.y - m * known_point.z 
+    y = m * z + c
+    return y
+
+def find_t(bezier_curve : BezierCurve, z_target : float) -> float :
+
+    def f(t):
+        return bezier_curve.Evaluate(t).z - z_target
+
+    intersection=root_scalar(f,bracket=[0,1])
+
+    return intersection.root
+
+def calculate_deflection_angle(flow_params : FlowParameters) -> float :
+
+    betaRad = np.radians(flow_params.betaDeg)
+    M_inf   = flow_params.M_design
+    gamma   = flow_params.gamma
+
+    tanTheta = 2*cot(betaRad)*(M_inf**2*np.sin(betaRad)**2-1)/(M_inf**2*(gamma+np.cos(2*betaRad))+2)
+
+    thetaDeg = np.degrees(np.arctan(tanTheta))
+
+    return thetaDeg
 
 # cotangent
-def cot(angle):
+def cot(angle : float) -> float:
     return 1/np.tan(angle)
+
+
+
