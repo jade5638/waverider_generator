@@ -5,13 +5,14 @@ import sys
 sys.path.append('waverider_generator')
 
 import matplotlib.pyplot as plt 
+from matplotlib.gridspec import GridSpec 
 from waverider_generator import *
 
-
 try :
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-    plt.rcParams.update({'font.size': 11})
+    pass
+    # plt.rc('text', usetex=True)
+    # plt.rc('font', family='serif')
+    # plt.rcParams.update({'font.size': 11})
 except :
     pass
     
@@ -42,48 +43,49 @@ if __name__ == "__main__":
     lsc = curves["LSC"]
     le = curves['LE']
 
-    fig, axs = plt.subplots(1, 3)
+    fig = plt.figure()
+    gs = GridSpec(2, 2)
+
+    ax1 = fig.add_subplot(gs[0,0])
 
     # plot base plane
-    axs[0].plot(sc.z, sc.y, 'b-o')
-    axs[0].plot(usc.z, usc.y, 'r-o')
-    axs[0].plot(lsc.z, lsc.y, 'k-o')
+    ax1.plot(sc.z, sc.y, 'b-o')
+    ax1.plot(usc.z, usc.y, 'r-o')
+    ax1.plot(lsc.z, lsc.y, 'k-o')
 
     for i in range(len(sc)):
-        axs[0].plot([sc[i].z, usc[i].z], [sc[i].y, usc[i].y], 'k--', alpha=0.7)
+        ax1.plot([sc[i].z, usc[i].z], [sc[i].y, usc[i].y], 'k--', alpha=0.7)
                 
-    axs[0].set_xlabel('z [m]')
-    axs[0].set_ylabel('y [m]')
+    ax1.set_xlabel('z [m]')
+    ax1.set_ylabel('y [m]')
 
-    axs[0].set_title('Waverider Base Plane')
+    ax1.set_title('Waverider Base Plane')
 
-    axs[0].set_aspect('equal')
+    ax1.set_aspect('equal')
 
-    leg = axs[0].legend(['Shockwave Curve', 'Upper Surface Curve', 'Lower Surface Curve', 'Osculating Planes'], loc = 'upper right')
+    leg = ax1.legend(['Shockwave Curve', 'Upper Surface Curve', 'Lower Surface Curve', 'Osculating Planes'], loc = 'upper right')
     leg.set_draggable(True)
 
     # plot waverider from the top
-    axs[1].plot(le.z, le.x, 'b-')
-    axs[1].plot([0, 0], [le.x[0], usc.x[0]], 'k-')
-    axs[1].plot(usc.z, usc.x, 'r-')
+    ax2 = fig.add_subplot(gs[:,1])
+    ax2.plot(le.z, le.x, 'b-')
+    ax2.plot([0, 0], [le.x[0], usc.x[0]], 'k-')
+    ax2.plot(usc.z, usc.x, 'r-')
 
-    axs[1].invert_yaxis()
+    ax2.invert_yaxis()
 
-    axs[1].set_xlabel('z [m]')
-    axs[1].set_ylabel('x [m]')
+    ax2.set_xlabel('z [m]')
+    ax2.set_ylabel('x [m]')
 
-    axs[1].set_title('Waverider Top View')
+    ax2.set_title('Waverider Top View')
 
-    axs[1].set_aspect('equal')
+    ax2.set_aspect('equal')
 
-    leg = axs[1].legend(['Leading Edge', 'Symmetry Plane', 'Base Plane'], loc = 'upper right')
+    leg = ax2.legend(['Leading Edge', 'Symmetry Plane', 'Base Plane'], loc = 'upper right')
     leg.set_draggable(True)
 
     # plot upper and lower surface streams in 3D
-    pos = axs[2].get_position()
-    axs[2].remove()
-
-    ax3d = fig.add_axes(pos, projection='3d')
+    ax3d = fig.add_subplot(gs[1,0], projection = '3d')
     for us_stream, ls_stream in zip(streams.US_Streams, streams.LS_Streams):
         ax3d.plot(us_stream.z, us_stream.x, us_stream.y, 'r-')
         ax3d.plot(ls_stream.z, ls_stream.x, ls_stream.y, 'k-')
