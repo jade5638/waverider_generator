@@ -5,20 +5,20 @@ The method makes use of the oscultating cone inverse design method and four desi
 Please consult the paper referenced for any further clarification on the geometrical meaning of these inputs. 
 
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_cad_example.png?raw=true" alt="Example of Waverider CAD Export" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/main/images/waverider_cad_example.png?raw=true" alt="Example of Waverider CAD Export" width="500"/>
 </p>
 <p align="center">Example of Waverider CAD Export</p>
 
 ## 1.1 Coordinate System
 The coordinate system is defined such that:
-- $$x$$ is the streamwise direction
-- $$y$$ is the transverse direction
-- $$z$$ is the spanwise direction
+- x is the streamwise direction
+- y is the transverse direction
+- z is the spanwise direction
 
 with the origin at the tip of the waverider.
 
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_axes.png?raw=true" alt="Coordinate System" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/main/images/waverider_axes.png?raw=true" alt="Coordinate System" width="500"/>
 </p>
 <p align="center">Coordinate System</p>
 
@@ -27,7 +27,7 @@ with the origin at the tip of the waverider.
 The terminology for the various curves and parameters referenced in this module can be found in more detail in [2]. The image below summarises the main terms :
 
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_convention.svg?raw=true" alt="Waverider Terminology (taken from [2])" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/main/images/waverider_convention.svg?raw=true" alt="Waverider Terminology (taken from [2])" width="500"/>
 </p>
 <p align="center">Waverider Terminology (taken from [2])</p>
 
@@ -56,7 +56,7 @@ See [3] for more information on the Osculating Cone Theory.
 
 # 2. Example Script
 
-An example script is provided [here](https://github.com/jade5638/waverider_generator/blob/refactor/examples/test.py). It goes through the following steps :
+An example script is provided [here](https://github.com/jade5638/waverider_generator/blob/main/examples/test.py). It goes through the following steps :
 
 0. Import required modules
    ```python
@@ -114,7 +114,7 @@ An example script is provided [here](https://github.com/jade5638/waverider_gener
    
    See script for this step. The following figure is then produced :
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_plots.svg?raw=true" alt="Waverider Example Plots" width="750"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/main/images/waverider_plots.svg?raw=true" alt="Waverider Example Plots" width="750"/>
 </p>
 <p align="center">Waverider Example Plots</p>
 
