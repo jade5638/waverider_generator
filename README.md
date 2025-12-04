@@ -24,7 +24,7 @@ with the origin at the tip of the waverider.
 
 ## 1.2 Terminology
 
-The terminology for the various curves and parameters referenced here can be found in more detail in [2]. The image below summarises the main terms encountered :
+The terminology for the various curves and parameters referenced in this module can be found in more detail in [2]. The image below summarises the main terms :
 
 <p align="center">
   <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_convention.svg?raw=true" alt="Waverider Terminology (taken from [2])" width="500"/>
@@ -112,126 +112,13 @@ An example script is provided [here](https://github.com/jade5638/waverider_gener
 
 7. Plot waverider from different angles
    
-## Required Inputs
-- Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
-- Freestream Mach number `M_inf`.
-- Shock angle in degrees `beta`.
-- Height of the waverider at the base plane `height`. Note that the length of the waverider is determined as $height/\tan(\beta)$ so a user may choose to determine the height required for a desired length.
-- Width of the waverider `width`. Note that this refers to half of the total width of the waverider due to the symmetry.
-- Number of points to be used for interpolating the shockwave and the upper surface curve (`n_shockwave` and `n_upper_surface` respectively). Both are integers greater than 10 to preserve quality.
-## Optional Inputs
-- Number of osculating planes used in the generation of the geometry `n_planes`. Note that this doesn't include the symmetry plane and the tip. A minimum number of planes is set at 10 to preserve quality and this is the default value.
-- Number of points in the streamwise direction for the generation of the upper surface as well as the flat part of the shockwave on the lower surface `n_streamwise`. A minimum is set at 10 to preserve quality and this is the default value.
-- Maximum step to be used in the tracing of the streamlines for the lower surface `delta_streamwise`. Note this is entered as a percentage of the length of the waverider and a maximum is set at 20% to preserve quality. The default value is 5%.
-
-## Summary of inputs
-|Input|Type|Conditions|
-|:-------------:|:--------------:|:--------------:|
-| `X1`, `X2`, `X3` and `X4` | `list` | $0\leq X2,X3,X4 \leq 1$ <br> $0 \leq X1 < 1$ <br> $\frac{X2}{\left(1-X1\right)^4}\leq\ \frac{7}{64}\left(\frac{width}{height}\right)^4$<br>(see [1] for more information on this design condition) |
-| `M_inf` | `float`, `int` | `M_inf>0` |
-|`beta`| `float`, `int`| `0<beta<90`|
-|`height`| `float`, `int`| `height>0`|
-|`width`| `float`, `int`| `width>0`|
-|`n_shockwave` and `n_upper_surface`| `int`| `n_shockwave,n_upper_surface>=10`
-|`n_planes`|`int`|`n_planes>=10`|
-|`n_streamise`|`int`|`n_streamwise>=10`|
-|`delta_streamise`|`float`|`0<delta_streamwise<=0.2`|
-
-# Usage and functionality
-
-A user can create a `waverider` instance by importing the `waverider` class from `waverider_generator.generator`. Everything takes place inside the class constructor so the user only needs to initialise the instance to create the geometry. An example is shown below: <br>
-```python
-from waverider_generator.generator import waverider as wr
-M_inf=5
-beta=15
-height=1.34
-width=3
-dp=[0.11,0.63,0,0.46]
-n_planes=20
-n_streamwise=10
-delta_streamwise=0.1
-waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise,delta_streamise=delta_streamwise)
-```
-## CAD Export
-To export the geometry into a file CAD, the user can import the `to_CAD` function from `waverider_generator.cad_export`. An example is shown below: <br>
-
-```python
-#%%
-# assuming a waverider instance has been created with the code above
-from waverider_generator.cad_export import to_CAD
-
-waverider_cad=to_CAD(waverider=waverider,sides='both',export=True,filename='waverider.step',scale=1000)
-waverider_cad
-```
-
-The `to_CAD` function is detailed below:
-
-|Input|Type|Conditions|Description|
-|:-------------:|:--------------:|:--------------:|:--------------:|
-| `waverider` | `waverider` | NA|`waverider` instance|
-| `sides`| `str` | `"left"`, `"right"` or `"both"` <br> | Side(s) of the waverider to generate in the CAD|
-|`export`| `bool` |`True` or `False`| Setting this to `True` exports the CAD to the current directory, `False` does not|
-|`filename`| `str`| The extension must be one which `cadquery` can generate a CAD file in| Name of the CAD file to be created|
-|`scale` (optional)|`float`,`int`| `scale>0`| Scale factor by which the final geometry is scaled. By default, cadquery exports geometries in mm so the default value for `scale` is 1000 to obtain dimensions in meters. Setting this to 1 keeps the dimensions in mm. It is recommended to keep the default value of 1000 and work in meters from the start.
-
-|Output|Type|Conditions|Description|
-|:-------------:|:--------------:|:--------------:|:--------------:|
-`waverider_cad`| `cq.Solid` (cadquery solid) | NA | A cadquery solid corresponding to the waverider generated. This can be previewed in a Jupyter Notebook, therefore avoiding the step of exporting and importing into a seperate CAD software each time.|
-
+   See script for this step. The following figure is then produced :
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/main/cad_preview_example.png?raw=true" alt="Jupyter Notebook CAD preview example" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_plots.svg?raw=true" alt="Waverider Example Plots" width="750"/>
 </p>
-<p align="center">Jupyter Notebook CAD preview example</p>
+<p align="center">Waverider Example Plots</p>
 
-## Plotting tools
-
-The package also allows the user to plot basic figures to analyse the geometry generated before a CAD export. This is done by importing `Plot_Base_Plane` and `Plot_Leading_Edge` from `waverider_generator.plotting_tools`. An example, also included as an example file, is shown below
-
-**Note** that the `latex` input into the plotting functions is a boolean and determines whether or not to plot the figure with the default LaTex font. The user is required to install a LaTex distribution on their system for this feature to work.
-
-```python
-#%%
-from waverider_generator.generator import waverider as wr
-from waverider_generator.plotting_tools import Plot_Base_Plane,Plot_Leading_Edge
-import matplotlib.pyplot as plt
-
-M_inf=5
-beta=15
-height=1.34
-width=3
-dp=[0.11,0.63,0,0.46]
-n_planes=20
-n_streamwise=10
-delta_streamwise=0.1
-waverider=wr(M_inf=M_inf,beta=beta,height=height,width=width,dp=dp,n_upper_surface=10000,n_shockwave=10000,n_planes=n_planes,n_streamwise=n_streamwise,delta_streamise=delta_streamwise)
-#%%
-'''
-PLOT BASE PLANE
-'''
-base_plane=Plot_Base_Plane(waverider=waverider,latex=True)
-#%%
-'''
-PLOT LEADING EDGE
-'''
-leading_edge=Plot_Leading_Edge(waverider=waverider=True,latex=True)
-plt.show()
-```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/base_plane.svg" alt="Base Plane" width="500"/>
-</p>
-<p align="center">Base Plane</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/jade5638/waverider_generator/2c5aba1915e3e87223f8f3444c2ae3c8b66c77a5/leading_edge.svg" alt="LE" width="300"/>
-</p>
-<p align="center">Leading Edge Plot</p>
-
-# Dependencies
-The package requires the following libraries to be installed:
-- numpy
-- cadquery
-- scipy
-
-# License
+# 3. License
 MIT License
 
 Copyright (c) 2024 jade5638
@@ -254,12 +141,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-# Citing
+# 4. Citing
 
 Please use the reference.bib file included to reference this work. 
 
------------
-# References
+# 5. References
 
 [1] Jiwon Son, Chankyu Son, and Kwanjung Yee. 
 'A Novel Direct Optimization Framework for Hypersonic Waverider Inverse Design Methods'.
@@ -268,8 +154,7 @@ In: Aerospace 9.7 (June 2022), p. 348. issn: 2226-4310. doi: 10.3390/aerospace90
 [2] Jade Nassif.
 'Multi-objective Multi-point Aerodynamic Optimisation of a Hypersonic Waverider'.
 Cranfield University, 2024. 
-Available: https://github.com/jade5638/jade_nassif_thesis
-‌
+Available: [https://github.com/jade5638/jade_nassif_thesis/blob/main/s422385_Thesis.pdf](https://github.com/jade5638/jade_nassif_thesis/blob/main/s422385_Thesis.pdf?raw=1)
 
 [3] Helmut Sobieczky, F Dougherty, and Kevin Jones.
 “Hypersonic Waverider Design from Given Shock Waves”. In: May 1990
