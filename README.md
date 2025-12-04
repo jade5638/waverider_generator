@@ -11,9 +11,9 @@ Please consult the paper referenced for any further clarification on the geometr
 
 ## 1.1 Coordinate System
 The coordinate system is defined such that:
-- $x$ is the streamwise direction
-- $y$ is the transverse direction
-- $z$ is the spanwise direction
+- $$x$$ is the streamwise direction
+- $$y$$ is the transverse direction
+- $$z$$ is the spanwise direction
 
 with the origin at the tip of the waverider.
 
