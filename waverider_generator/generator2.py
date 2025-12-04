@@ -1,18 +1,20 @@
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 from  scipy.integrate import solve_ivp
 from waverider_generator.flowfield import cone_angle,cone_field
-from typing import Union, Optional, Dict, Tuple
-from waverider_generator.input_validation import *
+from typing import Union, Dict, Tuple, Iterable, Literal
+from waverider_generator.input_validation import GeometricParameters, FlowParameters
 from abc import ABC, abstractmethod
-from waverider_generator.curves import *
-import math
+from dataclasses import dataclass
+from waverider_generator.curves import Curve, BezierCurve, Point
 import os
 import cadquery as cq
 
 @dataclass(frozen=True, slots=True)
 class Streams :
+    '''
+    Dataclass which defines a built waverider purely via its upper and lower surface streams.
+    '''
 
     US_Streams : list[Curve]
     LS_Streams : list[Curve]
@@ -32,6 +34,9 @@ class Streams :
         object.__setattr__(self, 'LS_Streams', LS_Streams)
         
 class IWaverider(ABC) :
+    '''
+    Waverider Interface.
+    '''
 
     __slots__ = ("_geo_params", "_flow_params")
     
@@ -45,6 +50,9 @@ class IWaverider(ABC) :
 
 class WaveriderCore(IWaverider) : 
 
+    '''
+    Core waverider class. Used only to define the constructor and class attributes.
+    '''
     __slots__ = ()
 
     def __init__(self, geo_params   : GeometricParameters, 
@@ -65,71 +73,122 @@ class WaveriderCore(IWaverider) :
         return self._flow_params
     
 class Waverider(WaveriderCore) :
+    '''
+    Build and export a CAD model of an osculating cone waverider.
+    '''
 
     __slots__ = ()
 
     @property
     def thetaDeg(self) -> float :
+        '''
+        Deflection angle in degrees
+        '''
         return calculate_deflection_angle(self._flow_params)
     
     @property
     def thetaRad(self) -> float :
+        '''
+        Deflection angle in radians
+        '''
         return np.radians(self.thetaDeg)
     
     @property
     def length(self) -> float :
+        '''
+        Length of the waverider
+        '''
         return self.h / np.tan(self.betaRad)
     
     @property
     def cone_angle_deg(self) -> float :
+        '''
+        Cone angle in degrees
+        '''
         return cone_angle(self.M_design, self.betaDeg, self.gamma)
     
     @property
     def cone_angle_rad(self) -> float :
+        '''
+        Cone angle in radians
+        '''
         return np.radians(self.cone_angle_deg)
 
     @property
     def M_design(self) -> float :
+        '''
+        Design Mach Number
+        '''
         return self.flow_params.M_design
     
     @property
     def betaDeg(self) -> float :
+        '''
+        Shock angle in degrees
+        '''
         return self.flow_params.betaDeg
     
     @property
-    def betaRad(self) -> float : 
+    def betaRad(self) -> float :
+        '''
+        Shock angle in radians
+        ''' 
         return np.radians(self.betaDeg)
     
     @property
     def gamma(self) -> float :
+        '''
+        Ratio of specific heats
+        '''
         return self.flow_params.gamma
     
     @property
     def X1(self) -> float :
+        '''
+        Geometric Parameter X1
+        '''
         return self.geo_params.X1
     
     @property
     def X2(self) -> float :
+        '''
+        Geometric Parameter X2
+        '''
         return self.geo_params.X2
     
     @property
     def X3(self) -> float :
+        '''
+        Geometric Parameter X3
+        '''
         return self.geo_params.X3
     
     @property
     def X4(self) -> float :
+        '''
+        Geometric Parameter X4
+        '''
         return self.geo_params.X4
     
     @property
     def w(self) -> float :
+        '''
+        Half-width of the waverider
+        '''
         return self.geo_params.w
     
     @property
     def h(self) -> float :
+        '''
+        Height of the waverider at the symmetry plane
+        '''
         return self.geo_params.h
     
     @property
     def SC_ControlPoints(self) -> Curve :
+        '''
+        Shockwave Curve Control Points
+        '''
         return Curve(
             x = self.length * np.ones(5),
             y = np.concatenate((np.zeros(4), np.array([self.h * self.X2]))) - self.h,
@@ -138,6 +197,9 @@ class Waverider(WaveriderCore) :
     
     @property
     def USC_ControlPoints(self) -> Curve :
+        '''
+        Upper Surface Curve Control Points
+        '''
         curve = Curve(
             x = self.length * np.ones(3),
             y = np.array([0, - (1 - self.X2) * self.X3 * self.h, - (1 - self.X2) * self.X4 * self.h]),
@@ -150,18 +212,31 @@ class Waverider(WaveriderCore) :
     
     @property
     def SC_Bezier(self) -> BezierCurve :
+        '''
+        Bezier Curve of the Shockwave Curve
+        '''
         return BezierCurve(self.SC_ControlPoints)
 
     @property
     def USC_Bezier(self) -> BezierCurve :
+        '''
+        Bezier Curve of the Upper Surface Curve
+        '''
         return BezierCurve(self.USC_ControlPoints)
     
     @property
     def z_crit(self) -> float :
+        '''
+        Critical z coordinate (after which the SC is defined by its Bezier Curve)
+        '''
+        
         return self.w * self.X1
     
     @property
     def lateral_tip_point(self) -> Point :
+        '''
+        Lateral Tip of the Waverider
+        '''
         return self.SC_ControlPoints[-1]
 
     def Build(self, 
@@ -170,6 +245,43 @@ class Waverider(WaveriderCore) :
             n_streamline_pts        : int   = 50,  
             dx_LS_streamline        : float = 0.1)  -> Tuple[Streams, Dict[str, Curve]]:
         
+        '''
+        Build the waverider.
+
+        Inputs
+        ----------
+        z_base :
+            z coordinates to iterate through at the base plane.\n
+            Requires z[0] == 0 and z[-1] == w where w is the half-width.\n
+            If None, a default exponential spacing function is used together with n_planes.
+        
+        n_planes :
+            Number of osculating planes (including symmetry and lateral tip).\n
+            Must be >= 3.
+            Only used if z_base is None.
+
+        n_streamline_pts :
+            Discretisation streamline points for US Streams and LS Streams (in the flat part of the SC).\n
+            Must be >= 10 to preserve quality.
+        
+        dx_LS_streamline :
+            Maximum step in tracing of the LSstreamlines, entered as a percentage of the waverider length.\n
+            Must satisfy 0 < dx_LS_streamline <= 0.2 to preserve quality.
+
+        ----------
+
+        Outputs
+        ----------
+        -> Tuple[Streams, Dict[str, Curve]] :
+            The Streams instance contains the waverider defined purely by its spanwise uoper and lower surface streams.
+            The dictionary will contain Curve instances and the following keys :
+                - 'SC' : Shockwave Curve
+                - 'USC' : Upper Surface Curve
+                - 'LSC' : Lower Surface Curve
+                - 'LE'  : Leading Edge Curve
+
+        '''
+        
         # n_planes input validation 
         if int(n_planes) != n_planes : raise ValueError("n_planes must be an integer")
         if n_planes < 3 : raise ValueError("n_planes must be >= 3")
@@ -177,9 +289,11 @@ class Waverider(WaveriderCore) :
         # n_streamline_pts input validation
         if n_streamline_pts < 10 : raise ValueError("n_streamline_pts must be >= 10")
 
+        # dx_LS_streamline input validation
         if not (0 < dx_LS_streamline <= 0.2) : 
             raise ValueError("dx_LS_streamlines_pts must be in (0, 0.2]")
         
+        # set z_base or get from user input 
         if z_base is None : 
             z_base = np.sort(self.w * exp_spacing(n_planes)) 
         else :
@@ -193,7 +307,8 @@ class Waverider(WaveriderCore) :
             if len(z_base) != len(np.unique(z_base)) : 
                 raise ValueError('z_base must contain unique values of z in [0, w]')
             
-            print('Using custom z_base, argument n_planes is overridden\n')
+            print('Using custom z_base, argument n_planes is overridden.\n')
+
 
         # get the Bezier curves for SC and USC
         SC_Bezier           = self.SC_Bezier
@@ -219,7 +334,8 @@ class Waverider(WaveriderCore) :
         
         back.terminal = True
         
-        # initialise, all Curve instances in global coordinate system
+        # initialise all Curve instances 
+        # defined in global coordinate system
         SC_base             = Curve()
         USC_intersections   = Curve()
         cone_centers        = Curve()
@@ -249,7 +365,7 @@ class Waverider(WaveriderCore) :
                 leading_edge_point = cone_point
 
                 # get lower surface y
-                lower_surface_y= leading_edge_point.y - np.tan(self.thetaRad) * (self.length - leading_edge_point.x)
+                lower_surface_y = leading_edge_point.y - np.tan(self.thetaRad) * (self.length - leading_edge_point.x)
 
                 # store the x,y and z in a streams
                 x_LS = np.linspace(leading_edge_point.x, self.length, n_streamline_pts)
@@ -305,6 +421,7 @@ class Waverider(WaveriderCore) :
                 alpha = np.arctan(dy_dz)
                 z_cone = SC_point.z - np.sin(alpha) * radius_curvature
                 y_cone = SC_point.y + np.cos(alpha) * radius_curvature
+
                 # distance between SC Point and cone center projection on base plane
                 d = SC_point.distanceTo(Point(x = self.length, y = y_cone, z=z_cone))
                 x_cone = self.length - d / np.tan(self.betaRad)
@@ -321,7 +438,10 @@ class Waverider(WaveriderCore) :
                 x_le=(eta_le) / np.tan(self.betaRad) 
 
                 # get the local LS stream
-                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, args=(radius_curvature / np.tan(self.betaRad),), max_step=dx_LS_streamline*self.length)
+                sol = solve_ivp(stode, (0, 1000), [x_le, eta_le], events=back, 
+                                args=(radius_curvature / np.tan(self.betaRad),), 
+                                max_step=dx_LS_streamline*self.length)
+                
                 stream = np.vstack([sol.y[0], -sol.y[1] * np.cos(alpha), sol.y[1] * np.sin(alpha)]).T
 
                 # transform from cone center coordinate system to global
@@ -365,7 +485,30 @@ class Waverider(WaveriderCore) :
                 sides : Literal['left', 'right', 'both'] = 'left',
                 export_filename: str = os.path.join(os.getcwd(), 'waverider.step'), 
                 scale : float = 1e3
-                ) :
+                ) -> cq.Solid :
+        
+        '''
+        Export a built waverider to CAD.\n
+        This method uses a Streams instance to represent the built waverider purely via its upper and lower surface streams.
+
+        INPUTS
+        ----------
+        sides :
+            Sides to export. Can either be 'left', 'right' or 'both'.\n
+            Default is 'left'.
+        
+        export_filename :
+            Filename of the CAD Model. \n
+            The CAD type is determined by the file extension (e.g .step).\n
+            Exports as 'waverider.step' in cd by default.
+            Specify as export_filename = '' if you do not want a CAD export.
+
+        scale :
+            Scale to apply to model dimensions (cadquery default dimensions are mm).\n 
+            Set to 1000 for meters.  
+        ----------
+
+        '''
         
         if sides not in ['left', 'right', 'both'] :
             raise ValueError("sides must be 'left', 'right' or 'both'")
@@ -443,13 +586,9 @@ class Waverider(WaveriderCore) :
         return solid
 
 
-
-
-
-
-
-
-        
+'''
+Helper Functions
+'''
 
 def exp_spacing(n : int, k : int = 2) -> np.ndarray:
     u = np.linspace(0, 1, n)
@@ -506,19 +645,6 @@ def calculate_deflection_angle(flow_params : FlowParameters) -> float :
 # cotangent
 def cot(angle : float) -> float:
     return 1/np.tan(angle)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
