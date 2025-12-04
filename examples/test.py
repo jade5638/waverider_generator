@@ -7,18 +7,10 @@ sys.path.append('waverider_generator')
 import matplotlib.pyplot as plt 
 from matplotlib.gridspec import GridSpec 
 from waverider_generator import *
-
-try :
-    pass
-    # plt.rc('text', usetex=True)
-    # plt.rc('font', family='serif')
-    # plt.rcParams.update({'font.size': 11})
-except :
-    pass
     
 if __name__ == "__main__":
 
-
+    # Define geometric parameters
     geo_params = GeometricParameters(X1 = 0.2, 
                                     X2 = 0.6, 
                                     X3 = 0.2, 
@@ -26,18 +18,23 @@ if __name__ == "__main__":
                                     w = 4.2, 
                                     h = 1.876)
 
+    # Define flow parameters
     flow_params = FlowParameters(M_design = 5.561, 
                                  betaDeg = 15, 
                                  gamma = 1.4)
 
+    # Instantiate the waverider
     waverider = Waverider(geo_params=geo_params, flow_params=flow_params)
 
+    # Build the waverider
     streams, curves = waverider.Build(n_planes=50, n_streamline_pts=20, dx_LS_streamline=0.05)
 
+    # Use streams to export to CAD
     solid = waverider.to_CAD(streams=streams, 
                              sides = 'both', 
                              export_filename='waverider_example.step')
 
+    # Extract various curves
     sc = curves["SC"]
     usc = curves["USC"]
     lsc = curves["LSC"]
@@ -53,6 +50,7 @@ if __name__ == "__main__":
     ax1.plot(usc.z, usc.y, 'r-o')
     ax1.plot(lsc.z, lsc.y, 'k-o')
 
+    # osculating planes
     for i in range(len(sc)):
         ax1.plot([sc[i].z, usc[i].z], [sc[i].y, usc[i].y], 'k--', alpha=0.7)
                 
@@ -62,12 +60,13 @@ if __name__ == "__main__":
     ax1.set_title('Waverider Base Plane')
 
     ax1.set_aspect('equal')
-
+    
     leg = ax1.legend(['Shockwave Curve', 'Upper Surface Curve', 'Lower Surface Curve', 'Osculating Planes'], loc = 'upper right')
     leg.set_draggable(True)
 
     # plot waverider from the top
     ax2 = fig.add_subplot(gs[:,1])
+    
     ax2.plot(le.z, le.x, 'b-')
     ax2.plot([0, 0], [le.x[0], usc.x[0]], 'k-')
     ax2.plot(usc.z, usc.x, 'r-')

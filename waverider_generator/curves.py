@@ -1,6 +1,6 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import numpy as np
-from typing import List, Literal, Union, Optional, Iterable, overload
+from typing import Union, Optional, Iterable, overload
 from math import factorial as factorial
 @dataclass(frozen=True, slots=True)
 class Point : 
@@ -275,7 +275,7 @@ def BernsteinPolynomial(n: int, i: int, t: float) -> float:
     Bernstein polynomial B_{i,n}(t).
     """
     if i < 0 or i > n:
-        return 0.0
+        return 0
     
     return (factorial(n) / (factorial(i) * factorial(n - i))) * (t**i) * ((1 - t)**(n - i))
 
