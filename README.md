@@ -1,15 +1,15 @@
-# Introduction
+# 1. Introduction
 
 Waverider Generator is a python package which can be used to generate hypersonic waveriders based on an efficient parametrisation described in [1].
 The method makes use of the oscultating cone inverse design method and four design parameters `X1`, `X2`, `X3` and `X4`. 
 Please consult the paper referenced for any further clarification on the geometrical meaning of these inputs. 
 
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/main/waverider_example.png?raw=true" alt="Waverider example" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_cad_example.png?raw=true" alt="Example of Waverider CAD Export" width="500"/>
 </p>
-<p align="center">Example of generated waverider</p>
+<p align="center">Example of Waverider CAD Export</p>
 
-## Coordinate System
+## 1.1 Coordinate System
 The coordinate system is defined such that:
 - $x$ is the streamwise direction
 - $y$ is the transverse direction
@@ -18,13 +18,14 @@ The coordinate system is defined such that:
 with the origin at the tip of the waverider.
 
 <p align="center">
-  <img src="https://github.com/jade5638/waverider_generator/blob/main/waverider_axes.png?raw=true" alt="Coordinate System" width="500"/>
+  <img src="https://github.com/jade5638/waverider_generator/blob/refactor/images/waverider_axes.png?raw=true" alt="Coordinate System" width="500"/>
 </p>
 <p align="center">Coordinate System</p>
 
-## Flow Field
+## 1.2 Flow Field
 
-### Oblique Shock
+### 1.2.1 Oblique Shock
+
 In the flat region of the shockwave, the lower surface is determined via the $\theta$- $\beta$ - $M_{\infty}$ equation, which relates the deflection angle $\theta$ to the shock angle $\beta$ in an oblique shock. 
 
 $$
@@ -33,11 +34,37 @@ $$
 
 Where $\gamma=1.4$ is the ratio of specific heats for air and $M_{\infty}$ is the freestream Mach number.
 
-### Osculating Cone Theory
+### 1.2.2 Osculating Cone Theory
 
 In the curved region of the shockwave, the osculating cone theory is used whereby conical flow is locally applied at each osculating plane. 
 The Taylor-Maccoll ODE, which describes conical flow, is solved and the resulting streamlines are propagated until the back of the waverider is reached to produce the lower surface.
 See [2] for more information on the Osculating Cone Theory.
+
+# 2. Example Script
+
+An example script is provided [here](https://github.com/jade5638/waverider_generator/blob/refactor/examples/test.py). It goes through the following steps :
+
+0. Import required modules
+   ```python
+      import matplotlib.pyplot as plt 
+      from matplotlib.gridspec import GridSpec 
+      from waverider_generator import *
+   ```
+1. Define the waverider's geometric parameters
+   ```python
+     geo_params = GeometricParameters(X1 = 0.2, 
+                                    X2 = 0.6, 
+                                    X3 = 0.2, 
+                                    X4 = 0.1, 
+                                    w = 4.2, 
+                                    h = 1.876)
+   ```
+   Where :
+   - `X1`, `X2`, `X3` and `X4` have the meaning specified in [1]
+   - `w` is the half-width of the waverider 
+   - `h` is the height of the waverider at the symmetry plane
+
+
 
 ## Required Inputs
 - Design parameters `X1`, `X2`, `X3` and `X4`. Note this is entered as a list `dp` of four elements where the parameters are organised in the order listed here. Refer to the examples.
@@ -157,10 +184,6 @@ The package requires the following libraries to be installed:
 - numpy
 - cadquery
 - scipy
-- matplotlib
-
-Optional:
-- a LaTex distribution such as MiKTex (refer to previous section) 
 
 # License
 MIT License
