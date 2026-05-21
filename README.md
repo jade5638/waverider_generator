@@ -143,7 +143,11 @@ SOFTWARE.
 
 # 4. Citing
 
-Please use the reference.bib file included to reference this work. 
+Please use the reference.bib file provided, or cite as :
+
+Jade Nassif. Waverider Generator 3.0.1. Dec. 2025. 
+
+URL : [https://github.com/jade5638/waverider_generator](https://github.com/jade5638/waverider_generator).
 
 # 5. References
 
@@ -154,7 +158,14 @@ In: Aerospace 9.7 (June 2022), p. 348. issn: 2226-4310. doi: 10.3390/aerospace90
 [2] Jade Nassif.
 'Multi-objective Multi-point Aerodynamic Optimisation of a Hypersonic Waverider'.
 Cranfield University, 2024. 
+
 Available: [https://github.com/jade5638/jade_nassif_thesis/blob/main/s422385_Thesis.pdf](https://github.com/jade5638/jade_nassif_thesis/blob/main/s422385_Thesis.pdf?raw=1)
 
-[3] Helmut Sobieczky, F Dougherty, and Kevin Jones.
+[3] Jade Nassif, Jimmy-John OE Hoste, and Tamás István Józsa. “Multi-
+point surrogate-based aerodynamic optimisation of a generic hypersonic
+waverider”. In: Aerospace Science and Technology 175 (Aug. 2026), p. 111978.
+issn: 12709638. doi: 10.1016/j.ast.2026.111978.
+
+
+[4] Helmut Sobieczky, F Dougherty, and Kevin Jones.
 “Hypersonic Waverider Design from Given Shock Waves”. In: May 1990
