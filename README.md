@@ -167,5 +167,5 @@ waverider”. In: Aerospace Science and Technology 175 (Aug. 2026), p. 111978.
 issn: 12709638. doi: 10.1016/j.ast.2026.111978.
 
 
-[3] Helmut Sobieczky, F Dougherty, and Kevin Jones.
+[4] Helmut Sobieczky, F Dougherty, and Kevin Jones.
 “Hypersonic Waverider Design from Given Shock Waves”. In: May 1990
