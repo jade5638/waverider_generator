@@ -143,7 +143,7 @@ SOFTWARE.
 
 # 4. Citing
 
-Cite as :
+Please use the reference.bib file provided, or cite as :
 
 Jade Nassif. Waverider Generator 3.0.1. Dec. 2025. 
 
